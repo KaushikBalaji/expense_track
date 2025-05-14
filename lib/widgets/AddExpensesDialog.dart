@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 class AddExpenseDialog extends StatefulWidget {
-  final void Function(String title, double amount, String tag, DateTime date) onAdd;
+  final void Function(String title, double amount, String tag, DateTime date, String type) onAdd;
 
   const AddExpenseDialog({super.key, required this.onAdd});
 
@@ -17,13 +17,14 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
   final List<String> _tags = ['Food', 'Transport', 'Bills', 'Entertainment'];
   String _selectedTag = 'Food';
   DateTime _selectedDate = DateTime.now();
+  String type = 'Income';
 
   void _submit() {
     if (_formKey.currentState!.validate()) {
       final title = _titleController.text;
       final amount = double.parse(_amountController.text);
 
-      widget.onAdd(title, amount, _selectedTag, _selectedDate);
+      widget.onAdd(title, amount, _selectedTag, _selectedDate, type);
       Navigator.of(context).pop();
     }
   }
@@ -98,6 +99,37 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                   onPressed: _pickDate,
                 ),
               ],
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: ['Income', 'Expense'].map((value) {
+                final selected = type == value;
+                return GestureDetector(
+                  onTap: () => setState(() => type = value),
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 8),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 8,
+                      horizontal: 20,
+                    ),
+                    decoration: BoxDecoration(
+                      color: selected
+                          ? (value == 'Income'
+                          ? Colors.green
+                          : Colors.red)
+                          : Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      value,
+                      style: TextStyle(
+                        color: selected ? Colors.white : Colors.black87,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
             ),
           ],
         ),

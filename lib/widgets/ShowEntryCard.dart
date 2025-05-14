@@ -15,7 +15,7 @@ class EntryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isIncome = entry.type == EntryType.income;
+    final isIncome = entry.type == 'Income';
     return GestureDetector(
       onTap: onTap,
       child: Card(

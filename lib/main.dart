@@ -13,12 +13,13 @@ import '/pages/dashboard_page.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+
   print('Initializing Hive...');
   await Hive.initFlutter();
+  await Hive.deleteBoxFromDisk('entriesBox');
 
   print('Registering Entry Adapter...');
   Hive.registerAdapter(EntryAdapter());       // Register the Entry adapter
-  Hive.registerAdapter(EntryTypeAdapter());
 
   print('Opening expensesBox...');
   await HiveService.initialize();             // Initialize the HiveService to open the box
