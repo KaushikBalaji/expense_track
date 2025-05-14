@@ -1,15 +1,22 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../models/entry.dart';
 import 'ShowEntryCard.dart';
+import 'transactions_details.dart';
 
 class EntryListSection extends StatefulWidget {
   final List<Entry> entries;
   final Function(Entry) onDelete;
+  final Function(Entry)? onTap;
+  final Animation<Offset>? slideAnimation; // Not used per-entry, so we’ll leave it for future use
 
   const EntryListSection({
     super.key,
     required this.entries,
     required this.onDelete,
+    this.onTap,
+    this.slideAnimation,
   });
 
   @override
@@ -17,29 +24,98 @@ class EntryListSection extends StatefulWidget {
 }
 
 class _EntryListSectionState extends State<EntryListSection> {
-  final Set<String> _expandedMonths = {};
+  DateTime _selectedMonth = DateTime.now();
+  Entry? _selectedEntry;
 
-  @override
-  void initState() {
-    super.initState();
-    _expandAllMonths();
+  bool get isMobile =>
+      defaultTargetPlatform == TargetPlatform.android ||
+          defaultTargetPlatform == TargetPlatform.iOS;
+
+  String _formattedDay(DateTime date) {
+    return DateFormat('MMMM d, EEEE').format(date);
   }
 
-  void _expandAllMonths() {
-    final grouped = _groupEntriesByMonth(widget.entries);
-    final sortedKeys = grouped.keys.toList()
-      ..sort((a, b) {
-        final aMonth = _monthIndex(a.split(' ')[0]).toString().padLeft(2, '0');
-        final bMonth = _monthIndex(b.split(' ')[0]).toString().padLeft(2, '0');
-        final aDate = DateTime.parse('${a.split(' ')[1]}-$aMonth-01');
-        final bDate = DateTime.parse('${b.split(' ')[1]}-$bMonth-01');
-        return bDate.compareTo(aDate);
-      });
-
-    // Expanding all months by default
+  void _changeMonth(int offset) {
     setState(() {
-      _expandedMonths.addAll(sortedKeys);
+      _selectedMonth = DateTime(_selectedMonth.year, _selectedMonth.month + offset);
     });
+  }
+
+  void _selectMonthFromPicker() async {
+    int selectedYear = _selectedMonth.year;
+    int selectedMonth = _selectedMonth.month;
+
+    await showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back_ios),
+                        onPressed: () => setModalState(() => selectedYear--),
+                      ),
+                      Text(
+                        '$selectedYear',
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.arrow_forward_ios),
+                        onPressed: () => setModalState(() => selectedYear++),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: List.generate(12, (index) {
+                      final monthIndex = index + 1;
+                      final isSelected = monthIndex == selectedMonth;
+                      return GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _selectedMonth = DateTime(selectedYear, monthIndex);
+                          });
+                          Navigator.of(context).pop();
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(10),
+                            color: isSelected
+                                ? Theme.of(context).colorScheme.primary
+                                : Colors.grey.shade200,
+                          ),
+                          child: Text(
+                            _monthName(monthIndex),
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: isSelected ? Colors.white : Colors.black,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   String _monthName(int month) {
@@ -50,120 +126,130 @@ class _EntryListSectionState extends State<EntryListSection> {
     return months[month - 1];
   }
 
-  int _monthIndex(String monthName) {
-    const months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
-    ];
-    return months.indexOf(monthName) + 1;
-  }
-
-  Map<String, List<Entry>> _groupEntriesByMonth(List<Entry> entries) {
-    Map<String, List<Entry>> grouped = {};
+  Map<DateTime, List<Entry>> _groupEntriesByDay(List<Entry> entries) {
+    Map<DateTime, List<Entry>> grouped = {};
     for (var entry in entries) {
-      final key = '${_monthName(entry.date.month)} ${entry.date.year}';
+      final key = DateTime(entry.date.year, entry.date.month, entry.date.day);
       grouped.putIfAbsent(key, () => []).add(entry);
     }
+    return grouped;
+  }
 
-    for (var entry in grouped.entries) {
-      entry.value.sort((a, b) => b.date.compareTo(a.date));
+  void _handleEntryTap(Entry entry) {
+    if (widget.onTap != null) {
+      widget.onTap!(entry);
+      return;
     }
 
-    return grouped;
+    // Default behavior if onTap is not provided
+    if (isMobile) {
+      showDialog(
+        context: context,
+        builder: (context) => TransactionDetailsPanel(
+          entry: entry,
+          onClose: () => Navigator.of(context).pop(),
+        ),
+      );
+    } else {
+      setState(() {
+        _selectedEntry = entry;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final grouped = _groupEntriesByMonth(widget.entries);
-    final sortedKeys = grouped.keys.toList()
-      ..sort((a, b) {
-        final aMonth = _monthIndex(a.split(' ')[0]).toString().padLeft(2, '0');
-        final bMonth = _monthIndex(b.split(' ')[0]).toString().padLeft(2, '0');
-        final aDate = DateTime.parse('${a.split(' ')[1]}-$aMonth-01');
-        final bDate = DateTime.parse('${b.split(' ')[1]}-$bMonth-01');
-        return bDate.compareTo(aDate);
-      });
+    final selectedEntries = widget.entries
+        .where((entry) =>
+    entry.date.year == _selectedMonth.year &&
+        entry.date.month == _selectedMonth.month)
+        .toList();
 
-    return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(8, 8, 8, 80),
-      itemCount: sortedKeys.length,
-      itemBuilder: (context, index) {
-        final monthKey = sortedKeys[index];
-        final isExpanded = _expandedMonths.contains(monthKey);
-        final entries = grouped[monthKey]!;
+    final groupedByDay = _groupEntriesByDay(selectedEntries);
+    final sortedDays = groupedByDay.keys.toList()
+      ..sort((a, b) => b.compareTo(a)); // Newest first
 
-        return Column(
+    return Stack(
+      children: [
+        Column(
           children: [
-            GestureDetector(
-              onTap: () {
-                setState(() {
-                  if (isExpanded) {
-                    _expandedMonths.remove(monthKey);
-                  } else {
-                    _expandedMonths.add(monthKey);
-                  }
-                });
-              },
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: Container(
-                  margin: const EdgeInsets.only(right: 16, top: 16, bottom: 8),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(10),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.07),
-                        offset: const Offset(0, 2),
-                        blurRadius: 4,
-                      ),
-                    ],
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_left),
+                    onPressed: () => _changeMonth(-1),
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        monthKey,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
+                  GestureDetector(
+                    onTap: _selectMonthFromPicker,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
                       ),
-                      const SizedBox(width: 6),
-                      Icon(
-                        isExpanded ? Icons.expand_less : Icons.expand_more,
-                        size: 18,
-                        color: Theme.of(context).colorScheme.primary,
+                      child: Text(
+                        '${_monthName(_selectedMonth.month)} ${_selectedMonth.year}',
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                       ),
-                    ],
+                    ),
                   ),
-                ),
+                  IconButton(
+                    icon: const Icon(Icons.arrow_right),
+                    onPressed: () => _changeMonth(1),
+                  ),
+                ],
               ),
             ),
-            if (index != 0)
-              const Padding(
-                padding: EdgeInsets.only(top: 6.0, bottom: 10.0),
-                child: Divider(thickness: 1.0),
-              ),
-            AnimatedSize(
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeInOut,
-              child: Column(
-                children: isExpanded
-                    ? entries.map((entry) {
-                  return EntryCard(
-                    entry: entry,
-                    onDelete: () => widget.onDelete(entry),
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.only(bottom: 80),
+                itemCount: sortedDays.length,
+                itemBuilder: (context, index) {
+                  final day = sortedDays[index];
+                  final entries = groupedByDay[day]!;
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding:
+                        const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                        child: Text(
+                          _formattedDay(day),
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ),
+                      ...entries.map(
+                            (entry) => EntryCard(
+                          entry: entry,
+                          onDelete: () => widget.onDelete(entry),
+                          onTap: () => _handleEntryTap(entry),
+                        ),
+                      ),
+                    ],
                   );
-                }).toList()
-                    : [],
+                },
               ),
             ),
           ],
-        );
-      },
+        ),
+        if (!isMobile && _selectedEntry != null)
+          Positioned(
+            right: 0,
+            top: 0,
+            bottom: 0,
+            child: TransactionDetailsPanel(
+              entry: _selectedEntry!,
+              onClose: () => setState(() => _selectedEntry = null),
+            ),
+          ),
+      ],
     );
   }
 }
