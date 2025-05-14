@@ -35,6 +35,12 @@ class _EntryListSectionState extends State<EntryListSection> {
     return DateFormat('MMMM d, EEEE').format(date);
   }
 
+  void _showSidePanel(Entry entry) {
+    setState(() {
+      _selectedEntry = entry;
+    });
+  }
+
   void _changeMonth(int offset) {
     setState(() {
       _selectedMonth = DateTime(_selectedMonth.year, _selectedMonth.month + offset);
@@ -137,23 +143,7 @@ class _EntryListSectionState extends State<EntryListSection> {
 
   void _handleEntryTap(Entry entry) {
     if (widget.onTap != null) {
-      widget.onTap!(entry);
-      return;
-    }
-
-    // Default behavior if onTap is not provided
-    if (isMobile) {
-      showDialog(
-        context: context,
-        builder: (context) => TransactionDetailsPanel(
-          entry: entry,
-          onClose: () => Navigator.of(context).pop(),
-        ),
-      );
-    } else {
-      setState(() {
-        _selectedEntry = entry;
-      });
+      widget.onTap!(entry); // Pass to parent (e.g., transactions_page)
     }
   }
 

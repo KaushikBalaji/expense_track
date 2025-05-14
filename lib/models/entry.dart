@@ -2,15 +2,6 @@ import 'package:hive/hive.dart';
 
 part 'entry.g.dart';
 
-@HiveType(typeId: 1)
-enum EntryType {
-  @HiveField(0)
-  income,
-
-  @HiveField(1)
-  expense,
-}
-
 @HiveType(typeId: 2)
 class Entry {
   @HiveField(0)
@@ -26,7 +17,7 @@ class Entry {
   final DateTime date;
 
   @HiveField(4)
-  final EntryType type;
+  final String type;
 
   Entry({
     required this.title,
@@ -36,6 +27,6 @@ class Entry {
     required this.type,
   })
   {
-    print('Entry created: $title, $amount, $tag, $date');
+    print('Entry created: $title, $amount, $tag, $date, $type');
   }
 }
