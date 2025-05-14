@@ -5,7 +5,6 @@ import '../widgets/CustomAppbar.dart';
 import '../widgets/CustomSidebar.dart';
 import '../widgets/AddExpensesDialog.dart';
 import '../widgets/entry_list.dart';
-import '../widgets/transactions_overlay.dart';
 import '../widgets/transactions_details.dart';
 
 class TransactionsPage extends StatefulWidget {
@@ -16,38 +15,15 @@ class TransactionsPage extends StatefulWidget {
   State<TransactionsPage> createState() => _TransactionsPageState();
 }
 
-class _TransactionsPageState extends State<TransactionsPage>
-    with SingleTickerProviderStateMixin {
+class _TransactionsPageState extends State<TransactionsPage> {
   List<Entry> _entries = [];
   Entry? _selectedEntry;
-  bool _showOverlay = false;
-  late AnimationController _animationController;
-  late Animation<Offset> _slideAnimation;
+  bool _isPanelVisible = false;
 
   @override
   void initState() {
     super.initState();
     _loadEntries();
-
-    _animationController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 300),
-    );
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(1.0, 0.0),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(
-        parent: _animationController,
-        curve: Curves.easeInOut,
-      ),
-    );
-  }
-
-  @override
-  void dispose() {
-    _animationController.dispose();
-    super.dispose();
   }
 
   void _loadEntries() async {
@@ -57,11 +33,11 @@ class _TransactionsPageState extends State<TransactionsPage>
     });
   }
 
-  void _openAddDialog(BuildContext context, EntryType type) {
+  void _openAddDialog(BuildContext context) {
     showDialog(
       context: context,
       builder: (ctx) => AddExpenseDialog(
-        onAdd: (title, amount, tag, date) async {
+        onAdd: (title, amount, tag, date, type) async {
           final entry = Entry(
             title: title,
             amount: amount,
@@ -88,17 +64,14 @@ class _TransactionsPageState extends State<TransactionsPage>
   void _openTransactionDetails(Entry entry) {
     setState(() {
       _selectedEntry = entry;
-      _showOverlay = true;
+      _isPanelVisible = true;
     });
-    _animationController.forward();
   }
 
   void _closeTransactionDetails() {
-    _animationController.reverse().then((_) {
-      setState(() {
-        _selectedEntry = null;
-        _showOverlay = false;
-      });
+    setState(() {
+      _selectedEntry = null;
+      _isPanelVisible = false;
     });
   }
 
@@ -125,7 +98,7 @@ class _TransactionsPageState extends State<TransactionsPage>
                       IconButton(
                         icon: const Icon(Icons.settings),
                         onPressed: () {
-                          // settings logic
+                          // Add settings logic
                         },
                       ),
                     ],
@@ -141,47 +114,42 @@ class _TransactionsPageState extends State<TransactionsPage>
                   ),
                 ],
               ),
-              if (_showOverlay && _selectedEntry != null)
-                TransactionDetailsOverlay(
-                  entry: _selectedEntry!,
-                  onClose: _closeTransactionDetails,
-                  slideAnimation: _slideAnimation,
-                ),
+              // Side panel (flat design for PC)
+              _selectedEntry != null
+                  ? AnimatedPositioned(
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+                right: _isPanelVisible ? 0 : -400,
+                top: 0,
+                bottom: 0,
+
+                    child: TransactionDetailsPanel(
+                      entry: _selectedEntry!,
+                      onClose: _closeTransactionDetails,
+                    ),
+
+              )
+                  : const SizedBox.shrink(),
             ],
           );
         },
       ),
+
       floatingActionButton: Row(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
           FloatingActionButton(
-            heroTag: 'expenseBtn',
             onPressed: () {
-              _openAddDialog(context, EntryType.expense);
+              _openAddDialog(context);
             },
             shape: RoundedRectangleBorder(
-              side: const BorderSide(color: Colors.red, width: 2),
-              borderRadius: BorderRadius.circular(100),
+              side: const BorderSide(width: 2),
+              borderRadius: BorderRadius.circular(15),
             ),
-            backgroundColor: Colors.transparent,
-            tooltip: 'Add Expense',
+            //backgroundColor: Colors.transparent,
+            tooltip: 'Add Entry',
             elevation: 0,
-            child: const Icon(Icons.remove, color: Colors.red),
-          ),
-          const SizedBox(width: 16),
-          FloatingActionButton(
-            heroTag: 'incomeBtn',
-            onPressed: () {
-              _openAddDialog(context, EntryType.income);
-            },
-            shape: RoundedRectangleBorder(
-              side: const BorderSide(color: Colors.green, width: 2),
-              borderRadius: BorderRadius.circular(100),
-            ),
-            backgroundColor: Colors.transparent,
-            tooltip: 'Add Income',
-            elevation: 0,
-            child: const Icon(Icons.add, color: Colors.green),
+            child: const Icon(Icons.add),
           ),
         ],
       ),
