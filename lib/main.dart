@@ -1,22 +1,25 @@
 import 'package:expense_track/services/hive_service.dart';
 import 'package:flutter/material.dart';
-import './widgets/CustomAppbar.dart';
 import 'custom_theme.dart';
-import './widgets/CustomSidebar.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'models/entry.dart';
 import 'pages/dashboard_page.dart';
-import 'dart:io' show Platform;
 import 'package:hive_flutter/hive_flutter.dart';
-import '/pages/transactions_page.dart';
-import '/pages/dashboard_page.dart';
+import 'pages/supabase_auth_page.dart';
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
 
+  await Supabase.initialize(
+    url: 'https://qjjooylsjtrdvmnnvnhx.supabase.co',
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFqam9veWxzanRyZHZtbm52bmh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDcyMzcyMDQsImV4cCI6MjA2MjgxMzIwNH0.npHvRdDTqudBWJiLpFVjPTsdy3pZ_z7yDpHqmdBe0FM',
+  );
+
   print('Initializing Hive...');
   await Hive.initFlutter();
-  await Hive.deleteBoxFromDisk('entriesBox');
+  //await Hive.deleteBoxFromDisk('entriesBox');
 
   print('Registering Entry Adapter...');
   Hive.registerAdapter(EntryAdapter());       // Register the Entry adapter
@@ -40,6 +43,9 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   bool isDarkMode = false;
 
+
+
+
   void toggleTheme() {
     setState(() {
       isDarkMode = !isDarkMode;
@@ -52,7 +58,11 @@ class _MyAppState extends State<MyApp> {
       debugShowCheckedModeBanner: false,
       title: 'Expense Tracker',
       theme: isDarkMode ? AppTheme.darkTheme : AppTheme.lightTheme,
-      home: const DashboardPage(),
+      // home: Supabase.instance.client.auth.currentSession != null
+      //     ? DashboardPage()  // your main app screen
+      //     : AuthPage(),
+      home: DashboardPage(),  // your main app screen
+
     );
   }
 }
