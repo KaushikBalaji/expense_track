@@ -168,6 +168,7 @@ class _EntryListSectionState extends State<EntryListSection> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  SizedBox(width: 10,),
                   IconButton(
                     icon: const Icon(Icons.arrow_left),
                     onPressed: () => _changeMonth(-1),
@@ -178,7 +179,7 @@ class _EntryListSectionState extends State<EntryListSection> {
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(8),
-                        color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                        //color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
                       ),
                       child: Text(
                         '${_monthName(_selectedMonth.month)} ${_selectedMonth.year}',
@@ -186,6 +187,7 @@ class _EntryListSectionState extends State<EntryListSection> {
                       ),
                     ),
                   ),
+                  SizedBox(width: 10,),
                   IconButton(
                     icon: const Icon(Icons.arrow_right),
                     onPressed: () => _changeMonth(1),
@@ -211,7 +213,7 @@ class _EntryListSectionState extends State<EntryListSection> {
                           style: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.bold,
-                            color: Colors.black87,
+                            //color: Colors.black87,
                           ),
                         ),
                       ),
