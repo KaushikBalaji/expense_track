@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:uuid/uuid.dart';
 import '../models/entry.dart';
 import '../services/hive_service.dart';
 import '../widgets/CustomAppbar.dart';
@@ -44,6 +45,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
             tag: tag,
             date: date,
             type: type,
+            id: const Uuid().v4()
           );
           await HiveService.addExpense(entry);
           setState(() {
