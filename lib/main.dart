@@ -1,3 +1,6 @@
+import 'package:expense_track/pages/sync_status_page.dart';
+import 'package:expense_track/pages/transactions_page.dart';
+import 'package:expense_track/pages/user_page.dart';
 import 'package:expense_track/services/hive_service.dart';
 import 'package:flutter/material.dart';
 import 'custom_theme.dart';
@@ -5,10 +8,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'models/entry.dart';
 import 'pages/dashboard_page.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'pages/supabase_auth_page.dart';
 
 
 void main() async {
+  
   WidgetsFlutterBinding.ensureInitialized();
 
 
@@ -55,6 +58,12 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      routes: {
+    '/user': (context) => const UserPage(),
+    '/dashboard':(context) => const DashboardPage(),
+    '/transactions':(context) => const TransactionsPage(title: 'All Transactions'),
+    '/syncstatus':(context) => const SyncStatusPage()
+  },
       debugShowCheckedModeBanner: false,
       title: 'Expense Tracker',
       theme: isDarkMode ? AppTheme.darkTheme : AppTheme.lightTheme,
