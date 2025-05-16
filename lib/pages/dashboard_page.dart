@@ -23,14 +23,6 @@ class DashboardPage extends StatelessWidget {
                     Scaffold.of(scaffoldContext).openDrawer(); // Open sidebar
                   },
                 ),
-                actions: [
-                  IconButton(
-                    icon: const Icon(Icons.settings),
-                    onPressed: () {
-                      // settings logic
-                    },
-                  ),
-                ],
               ),
               // Dashboard content
               Padding(
@@ -40,17 +32,20 @@ class DashboardPage extends StatelessWidget {
                   children: [
                     const Text(
                       'Dashboard Overview',
-                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 16),
                     // Expense Card
-                    _buildCard('Total Expenses', '\$1,234.56', Colors.red),
+                    _buildCard('Total Expenses', '\u{20B9} 1,234.56', Colors.red),
                     const SizedBox(height: 16),
                     // Income Card
-                    _buildCard('Total Income', '\$5,000.00', Colors.green),
+                    _buildCard('Total Income', '\u{20B9} 5,000.00', Colors.green),
                     const SizedBox(height: 16),
                     // Balance Card
-                    _buildCard('Balance', '\$3,765.44', Colors.blue),
+                    _buildCard('Balance', '\u{20B9} 3,765.44', Colors.blue),
                   ],
                 ),
               ),
