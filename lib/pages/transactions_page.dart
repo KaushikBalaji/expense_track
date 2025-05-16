@@ -37,22 +37,23 @@ class _TransactionsPageState extends State<TransactionsPage> {
   void _openAddDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (ctx) => AddExpenseDialog(
-        onAdd: (title, amount, tag, date, type) async {
-          final entry = Entry(
-            title: title,
-            amount: amount,
-            tag: tag,
-            date: date,
-            type: type,
-            id: const Uuid().v4()
-          );
-          await HiveService.addExpense(entry);
-          setState(() {
-            _entries.add(entry);
-          });
-        },
-      ),
+      builder:
+          (ctx) => AddExpenseDialog(
+            onAdd: (title, amount, tag, date, type) async {
+              final entry = Entry(
+                title: title,
+                amount: amount,
+                tag: tag,
+                date: date,
+                type: type,
+                id: const Uuid().v4(),
+              );
+              await HiveService.addExpense(entry);
+              setState(() {
+                _entries.add(entry);
+              });
+            },
+          ),
     );
   }
 
@@ -72,9 +73,17 @@ class _TransactionsPageState extends State<TransactionsPage> {
 
   void _closeTransactionDetails() {
     setState(() {
-      _selectedEntry = null;
+      //_selectedEntry = null;
       _isPanelVisible = false;
     });
+
+    Future.delayed(const Duration(milliseconds: 300), () {
+    if (mounted) {
+      setState(() {
+        _selectedEntry = null;
+      });
+    }
+  });
   }
 
   @override
@@ -106,32 +115,35 @@ class _TransactionsPageState extends State<TransactionsPage> {
                     ],
                   ),
                   Expanded(
-                    child: _entries.isEmpty
-                        ? const Center(child: Text('No entries yet.'))
-                        : EntryListSection(
-                      entries: _entries,
-                      onDelete: _deleteEntry,
-                      onTap: _openTransactionDetails,
-                    ),
+                    child:
+                        _entries.isEmpty
+                            ? const Center(child: Text('No entries yet.'))
+                            : EntryListSection(
+                              entries: _entries,
+                              onDelete: _deleteEntry,
+                              onTap: _openTransactionDetails,
+                            ),
                   ),
                 ],
               ),
-              // Side panel (flat design for PC)
-              _selectedEntry != null
-                  ? AnimatedPositioned(
+
+              AnimatedPositioned(
                 duration: const Duration(milliseconds: 300),
                 curve: Curves.easeInOut,
                 right: _isPanelVisible ? 0 : -400,
                 top: 0,
                 bottom: 0,
-
-                    child: TransactionDetailsPanel(
-                      entry: _selectedEntry!,
-                      onClose: _closeTransactionDetails,
-                    ),
-
-              )
-                  : const SizedBox.shrink(),
+                child: SizedBox(
+                  width: 400,
+                  child:
+                      _selectedEntry != null
+                          ? TransactionDetailsPanel(
+                            entry: _selectedEntry!,
+                            onClose: _closeTransactionDetails,
+                          )
+                          : const SizedBox.shrink(), // Keep widget in tree
+                ),
+              ),
             ],
           );
         },
