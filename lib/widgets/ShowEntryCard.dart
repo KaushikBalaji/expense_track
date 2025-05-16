@@ -15,7 +15,7 @@ class EntryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isIncome = entry.type == 'Income';
+    final isIncome = entry.type == 'income'; 
     return GestureDetector(
       onTap: onTap,
       child: Card(
@@ -39,7 +39,7 @@ class EntryCard extends StatelessWidget {
                   '${entry.date.day}/${entry.date.month}/${entry.date.year} - ${entry.tag}',
                 ),
                 trailing: Text(
-                  '${isIncome ? '+' : '-'}\$${entry.amount.toStringAsFixed(2)}',
+                  '${isIncome ? '+' : '-'} ₹ ${entry.amount.toStringAsFixed(2)}',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,

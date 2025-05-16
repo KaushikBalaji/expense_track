@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:hive/hive.dart';
+// ignore: unused_import
 import 'package:uuid/uuid.dart';
 
 import '../models/entry.dart';
