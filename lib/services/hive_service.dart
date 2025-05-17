@@ -25,7 +25,7 @@ class HiveService {
 
   static Future<void> addExpense(Entry expense) async {
     print('Adding expense: $expense');
-    await _box.add(expense);
+    await _box.put(expense.id, expense);
   }
 
   static Future<void> deleteExpense(Entry expense) async {

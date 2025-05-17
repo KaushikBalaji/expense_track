@@ -34,28 +34,9 @@ class TransactionDetailsPanel extends StatelessWidget {
     );
   }
 
-  // Widget _buildTransactionDetails(BuildContext context) {
-  //   return Column(
-  //     crossAxisAlignment: CrossAxisAlignment.start,
-  //     children: [
-  //       _detailItem('Title', entry.title),
-  //       _detailItem('Amount', '₹${entry.amount.toStringAsFixed(2)}'),
-  //       _detailItem('Type', entry.type),
-  //       _detailItem(
-  //         'Date',
-  //         '${entry.date.month}/${entry.date.day}/${entry.date.year}',
-  //       ),
-  //       _detailItem('Category', entry.tag),
-  //       const SizedBox(height: 12),
-  //       Text(
-  //         'Edit functionality coming soon...',
-  //         style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey),
-  //       ),
-  //     ],
-  //   );
-  // }
-
   Widget _buildTransactionDetails(BuildContext context) {
+        print('Sidepanel entry: ${entry.id}, ${entry.amount}, ${entry.date}, ${entry.tag}, ${entry.title}, ${entry.type}');
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

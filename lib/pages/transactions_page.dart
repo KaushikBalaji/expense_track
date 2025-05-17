@@ -32,6 +32,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
     setState(() {
       _entries = entries;
     });
+    
   }
 
   void _openAddDialog(BuildContext context) {

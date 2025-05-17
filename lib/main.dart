@@ -9,15 +9,13 @@ import 'models/entry.dart';
 import 'pages/dashboard_page.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
-
 void main() async {
-  
   WidgetsFlutterBinding.ensureInitialized();
-
 
   await Supabase.initialize(
     url: 'https://qjjooylsjtrdvmnnvnhx.supabase.co',
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFqam9veWxzanRyZHZtbm52bmh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDcyMzcyMDQsImV4cCI6MjA2MjgxMzIwNH0.npHvRdDTqudBWJiLpFVjPTsdy3pZ_z7yDpHqmdBe0FM',
+    anonKey:
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFqam9veWxzanRyZHZtbm52bmh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDcyMzcyMDQsImV4cCI6MjA2MjgxMzIwNH0.npHvRdDTqudBWJiLpFVjPTsdy3pZ_z7yDpHqmdBe0FM',
   );
 
   print('Initializing Hive...');
@@ -25,10 +23,12 @@ void main() async {
   //await Hive.deleteBoxFromDisk('entriesBox');
 
   print('Registering Entry Adapter...');
-  Hive.registerAdapter(EntryAdapter());       // Register the Entry adapter
+  Hive.registerAdapter(EntryAdapter()); // Register the Entry adapter
 
   print('Opening expensesBox...');
-  await HiveService.initialize();             // Initialize the HiveService to open the box
+  await HiveService.initialize();
+  final categoriesBox = await Hive.openBox<String>('categories');
+  // Initialize the HiveService to open the box
 
   runApp(const MyApp());
 }
@@ -46,9 +46,6 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   bool isDarkMode = false;
 
-
-
-
   void toggleTheme() {
     setState(() {
       isDarkMode = !isDarkMode;
@@ -59,19 +56,19 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
       routes: {
-    '/user': (context) => const UserPage(),
-    '/dashboard':(context) => const DashboardPage(),
-    '/transactions':(context) => const TransactionsPage(title: 'All Transactions'),
-    '/syncstatus':(context) => const SyncStatusPage()
-  },
+        '/user': (context) => const UserPage(),
+        '/dashboard': (context) => const DashboardPage(),
+        '/transactions':
+            (context) => const TransactionsPage(title: 'All Transactions'),
+        '/syncstatus': (context) => const SyncStatusPage(),
+      },
       debugShowCheckedModeBanner: false,
       title: 'Expense Tracker',
       theme: isDarkMode ? AppTheme.darkTheme : AppTheme.lightTheme,
       // home: Supabase.instance.client.auth.currentSession != null
       //     ? DashboardPage()  // your main app screen
       //     : AuthPage(),
-      home: DashboardPage(),  // your main app screen
-
+      home: DashboardPage(), // your main app screen
     );
   }
 }

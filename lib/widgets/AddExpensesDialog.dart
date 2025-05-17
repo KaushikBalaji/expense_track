@@ -1,8 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 
 class AddExpenseDialog extends StatefulWidget {
-  final void Function(String title, double amount, String tag, DateTime date, String type) onAdd;
+  final void Function(
+    String title,
+    double amount,
+    String tag,
+    DateTime date,
+    String type,
+  )
+  onAdd;
 
   const AddExpenseDialog({super.key, required this.onAdd});
 
@@ -14,10 +23,13 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _amountController = TextEditingController();
-  final List<String> _tags = ['Food', 'Transport', 'Bills', 'Entertainment'];
-  String _selectedTag = 'Food';
+  //final List<String> _tags = ['Food', 'Transport', 'Bills', 'Entertainment'];
   DateTime _selectedDate = DateTime.now();
   String type = 'Income';
+  final tags = Hive.box<String>('categories').values.toList().cast<String>();
+  String _selectedTag = Hive.box<String>('categories').values.toList().cast<String>().first ;
+  
+  //final allOptions = [...tags, '+ Add Category'];
 
   void _submit() {
     if (_formKey.currentState!.validate()) {
@@ -76,9 +88,10 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
               },
             ),
             const SizedBox(height: 10),
+
             DropdownButtonFormField<String>(
               value: _selectedTag,
-              items: _tags
+              items: tags
                   .map((tag) => DropdownMenuItem(value: tag, child: Text(tag)))
                   .toList(),
               onChanged: (value) {
@@ -90,6 +103,38 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
               },
               decoration: const InputDecoration(labelText: 'Tag'),
             ),
+            // ValueListenableBuilder(
+            //   valueListenable: Hive.box<String>('categories').listenable(),
+            //   builder: (context, Box<String> box, _) {
+            //     final categories = box.values.toList().cast<String>();
+
+            //     if (categories.isEmpty) {
+            //       return const Text('No categories available');
+            //     }
+
+            //     return DropdownButtonFormField<String>(
+            //       value:
+            //           _selectedTag != '' && categories.contains(_selectedTag)
+            //               ? _selectedTag
+            //               : null,
+            //       items:
+            //           categories
+            //               .map(
+            //                 (tag) =>
+            //                     DropdownMenuItem(value: tag, child: Text(tag)),
+            //               )
+            //               .toList(),
+            //       onChanged: (value) {
+            //         if (value != null) {
+            //           setState(() {
+            //             _selectedTag = value;
+            //           });
+            //         }
+            //       },
+            //       decoration: const InputDecoration(labelText: 'Tag'),
+            //     );
+            //   },
+            // ),
             const SizedBox(height: 10),
             Row(
               children: [
@@ -102,34 +147,36 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
             ),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: ['Income', 'Expense'].map((value) {
-                final selected = type == value;
-                return GestureDetector(
-                  onTap: () => setState(() => type = value),
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 8),
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 8,
-                      horizontal: 20,
-                    ),
-                    decoration: BoxDecoration(
-                      color: selected
-                          ? (value == 'Income'
-                          ? Colors.green
-                          : Colors.red)
-                          : Colors.grey.shade300,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      value,
-                      style: TextStyle(
-                        color: selected ? Colors.white : Colors.black87,
-                        fontWeight: FontWeight.w600,
+              children:
+                  ['Income', 'Expense'].map((value) {
+                    final selected = type == value;
+                    return GestureDetector(
+                      onTap: () => setState(() => type = value),
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 8),
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 8,
+                          horizontal: 20,
+                        ),
+                        decoration: BoxDecoration(
+                          color:
+                              selected
+                                  ? (value == 'Income'
+                                      ? Colors.green
+                                      : Colors.red)
+                                  : Colors.grey.shade300,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          value,
+                          style: TextStyle(
+                            color: selected ? Colors.white : Colors.black87,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                );
-              }).toList(),
+                    );
+                  }).toList(),
             ),
           ],
         ),
@@ -139,10 +186,7 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('Cancel'),
         ),
-        ElevatedButton(
-          onPressed: _submit,
-          child: const Text('Add'),
-        ),
+        ElevatedButton(onPressed: _submit, child: const Text('Add')),
       ],
     );
   }

@@ -48,7 +48,7 @@ class Entry extends HiveObject {
   /// For downloading from Supabase
   factory Entry.fromMap(Map<String, dynamic> map) {
     return Entry(
-      id: map['id'],
+      id: map['id'].toString(),
       title: map['note'] , // or map['title'], if that's the actual column name
       amount: (map['amount'] as num).toDouble(),
       tag: map['tag'],

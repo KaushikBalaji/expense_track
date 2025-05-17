@@ -55,7 +55,6 @@
 //   }
 // }
 
-
 import 'dart:convert';
 import 'dart:io';
 import 'package:excel/excel.dart';
@@ -108,31 +107,38 @@ class ExcelOperationsSyncfusion {
 
   /// Placeholder – Syncfusion doesn't support reading XLSX directly
   static Future<void> importFromExcel(File file) async {
-  final bytes = file.readAsBytesSync();
-  final excel = Excel.decodeBytes(bytes);
+    final categoriesBox = Hive.box<String>('categories');
+    final bytes = file.readAsBytesSync();
+    final excel = Excel.decodeBytes(bytes);
 
-  final sheet = excel.tables[excel.tables.keys.first];
-  if (sheet == null) return;
+    final sheet = excel.tables[excel.tables.keys.first];
+    if (sheet == null) return;
 
-  final box = await Hive.openBox<Entry>('entriesbox');
+    final box = await Hive.openBox<Entry>('entriesbox');
 
-  for (int i = 1; i < sheet.rows.length; i++) {
-    final row = sheet.rows[i];
+    for (int i = 1; i < sheet.rows.length; i++) {
+      final row = sheet.rows[i];
+      final tag = row[3]?.value.toString() ?? '';
 
-    final entry = Entry(
-      id: row[0]?.value.toString(),
-      title: row[1]?.value.toString() ?? '',
-      amount: double.tryParse(row[2]?.value.toString() ?? '0') ?? 0.0,
-      tag: row[3]?.value.toString() ?? '',
-      date: DateTime.tryParse(row[4]?.value.toString() ?? '') ?? DateTime.now(),
-      type: row[5]?.value.toString() ?? '',
-    );
+      if (tag.isNotEmpty && !categoriesBox.values.contains(tag)) {
+        categoriesBox.add(tag);
+      }
 
-    await box.put(entry.id, entry);
+      final entry = Entry(
+        id: row[0]?.value.toString(),
+        title: row[1]?.value.toString() ?? '',
+        amount: double.tryParse(row[2]?.value.toString() ?? '0') ?? 0.0,
+        tag: row[3]?.value.toString() ?? '',
+        date:
+            DateTime.tryParse(row[4]?.value.toString() ?? '') ?? DateTime.now(),
+        type: row[5]?.value.toString() ?? '',
+      );
+
+      await box.put(entry.id, entry);
+    }
+
+    print('Imported ${sheet.rows.length - 1} entries from Excel.');
   }
-
-  print('Imported ${sheet.rows.length - 1} entries from Excel.');
-}
 
   /// Export Hive entries to a JSON file
   static Future<void> exportToJson({required String userId}) async {

@@ -17,12 +17,12 @@ class EntryAdapter extends TypeAdapter<Entry> {
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
     return Entry(
+      id: fields[0] as String?,
       title: fields[1] as String,
       amount: fields[2] as double,
       tag: fields[3] as String,
       date: fields[4] as DateTime,
       type: fields[5] as String,
-      id: fields[0] as String?,
     );
   }
 

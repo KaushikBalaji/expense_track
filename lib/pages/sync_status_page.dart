@@ -124,7 +124,7 @@ class _SyncStatusPageState extends State<SyncStatusPage> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               CustomAppBar(
-                title: 'Sync Status',
+                title: 'Export and Sync',
                 showBackButton: false,
                 leading: IconButton(
                   icon: const Icon(Icons.menu),
