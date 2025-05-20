@@ -1,3 +1,4 @@
+import 'package:expense_track/widgets/EntryDialog.dart';
 import 'package:flutter/material.dart';
 import '../models/entry.dart';
 import 'sidepanel.dart'; // import the new unified widget
@@ -21,21 +22,10 @@ class TransactionDetailsPanel extends StatelessWidget {
     );
   }
 
-  Widget _detailItem(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('$label: ', style: const TextStyle(fontWeight: FontWeight.w600)),
-          Expanded(child: Text(value)),
-        ],
-      ),
-    );
-  }
-
   Widget _buildTransactionDetails(BuildContext context) {
-        print('Sidepanel entry: ${entry.id}, ${entry.amount}, ${entry.date}, ${entry.tag}, ${entry.title}, ${entry.type}');
+    print(
+      'Sidepanel entry: ${entry.id}, ${entry.amount}, ${entry.date}, ${entry.tag}, ${entry.title}, ${entry.type}',
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -59,7 +49,21 @@ class TransactionDetailsPanel extends StatelessWidget {
         Center(
           child: ElevatedButton.icon(
             onPressed: () {
-              // Open edit mode
+              onClose(); // 👈 close sidepanel first
+              showDialog(
+                context: context,
+                builder:
+                    (context) => EntryDialog(
+                      initialEntry: entry,
+                      isEditing: true,
+                      onSuccess: () {
+                        // Optionally show a toast/snackbar or refresh view
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Transaction updated')),
+                        );
+                      },
+                    ),
+              );
             },
             icon: const Icon(Icons.edit),
             label: const Text('Edit Transaction'),

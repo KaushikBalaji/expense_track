@@ -49,7 +49,13 @@ class ResponsiveSidePanel extends StatelessWidget {
                     fontSize: 20,
                   ),
                 ),
-                IconButton(icon: Icon(Icons.close, color: Theme.of(context).colorScheme.inversePrimary), onPressed: onClose),
+                IconButton(
+                  icon: Icon(
+                    Icons.close,
+                    color: Theme.of(context).colorScheme.inversePrimary,
+                  ),
+                  onPressed: onClose,
+                ),
               ],
             ),
           ),
@@ -112,4 +118,3 @@ class ResponsiveSidePanel extends StatelessWidget {
         );
   }
 }
-

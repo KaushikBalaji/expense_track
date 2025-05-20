@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
 import 'package:uuid/uuid.dart';
 import '../models/entry.dart';
 import '../services/hive_service.dart';
 import '../widgets/CustomAppbar.dart';
 import '../widgets/CustomSidebar.dart';
-import '../widgets/AddExpensesDialog.dart';
+import '../widgets/EntryDialog.dart';
 import '../widgets/entry_list.dart';
 import '../widgets/transactions_details.dart';
 
@@ -32,26 +33,33 @@ class _TransactionsPageState extends State<TransactionsPage> {
     setState(() {
       _entries = entries;
     });
-    
   }
 
   void _openAddDialog(BuildContext context) {
     showDialog(
       context: context,
       builder:
-          (ctx) => AddExpenseDialog(
-            onAdd: (title, amount, tag, date, type) async {
-              final entry = Entry(
-                title: title,
-                amount: amount,
-                tag: tag,
-                date: date,
-                type: type,
-                id: const Uuid().v4(),
-              );
-              await HiveService.addExpense(entry);
+          (ctx) => EntryDialog(
+            onSuccess: () {
               setState(() {
-                _entries.add(entry);
+                _entries = Hive.box<Entry>('entriesBox').values.toList();
+              });
+            },
+          ),
+    );
+  }
+
+  void _openEditDialog(BuildContext context, Entry entry) {
+    Navigator.of(context).pop(); // Closes the side panel
+
+    showDialog(
+      context: context,
+      builder:
+          (ctx) => EntryDialog(
+            initialEntry: entry,
+            onSuccess: () {
+              setState(() {
+                _entries = Hive.box<Entry>('entriesBox').values.toList();
               });
             },
           ),
@@ -79,12 +87,12 @@ class _TransactionsPageState extends State<TransactionsPage> {
     });
 
     Future.delayed(const Duration(milliseconds: 300), () {
-    if (mounted) {
-      setState(() {
-        _selectedEntry = null;
-      });
-    }
-  });
+      if (mounted) {
+        setState(() {
+          _selectedEntry = null;
+        });
+      }
+    });
   }
 
   @override

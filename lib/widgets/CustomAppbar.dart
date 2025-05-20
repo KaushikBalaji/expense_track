@@ -1,3 +1,4 @@
+import 'package:expense_track/services/supabase_services.dart';
 import 'package:expense_track/widgets/auth_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -63,11 +64,21 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                 );
                 break;
               case 'logout':
-                await Supabase.instance.client.auth.signOut();
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(const SnackBar(content: Text('Logged out')));
-                Navigator.pushNamed(context, '/dashboard');
+                final service = SupabaseService();
+
+                //await handleLogout();
+                try {
+                  // await service.signOut();
+                  await service.handleLogout(context);
+                } catch (e) {
+                  // debugPrint('Sign out failed to sync with server: $e');
+
+                  final message = e.toString().replaceFirst('Exception: ', '');
+                  debugPrint('Logout failed: $message');
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Logout failed: $message')),
+                  );
+                }
                 break;
             }
           },
