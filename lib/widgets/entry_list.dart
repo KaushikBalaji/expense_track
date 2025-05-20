@@ -35,11 +35,6 @@ class _EntryListSectionState extends State<EntryListSection> {
     return DateFormat('MMMM d, EEEE').format(date);
   }
 
-  void _showSidePanel(Entry entry) {
-    setState(() {
-      _selectedEntry = entry;
-    });
-  }
 
   void _changeMonth(int offset) {
     setState(() {

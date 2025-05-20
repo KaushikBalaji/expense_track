@@ -6,22 +6,22 @@ part 'entry.g.dart';
 @HiveType(typeId: 2)
 class Entry extends HiveObject {
   @HiveField(0)
-  final String id;
+  String id;
 
   @HiveField(1)
-  final String title;
+  String title;
 
   @HiveField(2)
-  final double amount;
+  double amount;
 
   @HiveField(3)
-  final String tag;
+  String tag;
 
   @HiveField(4)
-  final DateTime date;
+  DateTime date;
 
   @HiveField(5)
-  final String type;
+  String type;
 
   Entry({
     String? id,
@@ -49,7 +49,7 @@ class Entry extends HiveObject {
   factory Entry.fromMap(Map<String, dynamic> map) {
     return Entry(
       id: map['id'].toString(),
-      title: map['note'] , // or map['title'], if that's the actual column name
+      title: map['note'], // or map['title'], if that's the actual column name
       amount: (map['amount'] as num).toDouble(),
       tag: map['tag'],
       date: DateTime.parse(map['date']),

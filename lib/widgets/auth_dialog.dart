@@ -1,8 +1,7 @@
 import 'package:expense_track/pages/dashboard_page.dart';
-import 'package:expense_track/widgets/CustomAppbar.dart';
-import 'package:expense_track/utils/validators.dart';
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:expense_track/services/supabase_services.dart'; // <-- adjust path if needed
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthDialogContent extends StatefulWidget {
   final VoidCallback? onClose;
@@ -24,10 +23,15 @@ class _AuthDialogContentState extends State<AuthDialogContent> {
 
   bool isLogin = true;
   bool isLoading = false;
+  bool rememberEmail = false;
+
+  final service = SupabaseService();
 
   @override
   void initState() {
     super.initState();
+
+    _loadRememberedEmail();
 
     emailController.addListener(() {
       if (emailErrorText != null) {
@@ -49,73 +53,74 @@ class _AuthDialogContentState extends State<AuthDialogContent> {
   }
 
   Future<void> handleAuth() async {
+    setState(() => isLoading = true);
+    final prefs = await SharedPreferences.getInstance();
+
     final email = emailController.text.trim();
     final password = passwordController.text.trim();
     final name = nameController.text.trim();
 
-    final emailError = InputValidators.Validate(email, 'email');
-    final passwordError = InputValidators.Validate(password, 'password');
-    final nameError = isLogin ? null : InputValidators.Validate(name, 'name');
-
-    setState(() {
-      emailErrorText = emailError;
-      passwordErrorText = passwordError;
-      nameErrorText = nameError;
-    });
-
-    if (emailError != null || passwordError != null || nameError != null) {
-      return;
-    }
-
-    setState(() => isLoading = true);
     try {
-      if (isLogin) {
-        await Supabase.instance.client.auth.signInWithPassword(
-          email: email,
-          password: password,
-        );
-        if (!mounted) return;
-        Navigator.of(context).pop();
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text("Login successful")));
-        if (context.mounted) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (_) => const DashboardPage()),
-          );
-        }
-      } else {
-        await Supabase.instance.client.auth.signUp(
-          email: email,
-          password: password,
-        );
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Signup successful. Check your email.")),
-        );
-        setState(() => isLogin = true);
-      }
-    } catch (e) {
-      final errorMessage = e.toString().toLowerCase();
+      await service.handleAuth(
+        email: email,
+        password: password,
+        name: isLogin ? null : name,
+        isLogin: isLogin,
+      );
 
-      if (errorMessage.contains('invalid login credentials')) {
-        setState(() {
-          passwordErrorText = "Incorrect email or password.";
-          emailErrorText = "Incorrect email or password.";
-        });
+      if (!mounted) return;
+      if (rememberEmail) {
+        await prefs.setString('remembered_email', email);
+      } else {
+        await prefs.remove('remembered_email');
       }
-      else if(errorMessage.contains('email not confirmed')){
-        setState(() {
-          emailErrorText = 'Confirm email before logging in';
-        });
-      } 
-      else {
+      Navigator.of(context).pop(); // Close dialog
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            isLogin
+                ? 'Login successful'
+                : 'Signup successful. Check your email.',
+          ),
+        ),
+      );
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const DashboardPage()),
+      );
+    } catch (e) {
+      final message = e.toString().replaceFirst('Exception: ', '');
+
+      setState(() {
+        emailErrorText = null;
+        passwordErrorText = null;
+        nameErrorText = null;
+
+        if (message.contains('email')) emailErrorText = message;
+        if (message.contains('password')) passwordErrorText = message;
+        if (message.contains('name')) nameErrorText = message;
+      });
+
+      if (!message.contains('email') &&
+          !message.contains('password') &&
+          !message.contains('name')) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text("Error: $errorMessage")));
+        ).showSnackBar(SnackBar(content: Text(message)));
       }
     } finally {
       setState(() => isLoading = false);
+    }
+  }
+
+  Future<void> _loadRememberedEmail() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedEmail = prefs.getString('remembered_email');
+    if (savedEmail != null && savedEmail.isNotEmpty) {
+      setState(() {
+        rememberEmail = true;
+        emailController.text = savedEmail;
+      });
     }
   }
 
@@ -169,6 +174,23 @@ class _AuthDialogContentState extends State<AuthDialogContent> {
           ),
         ),
         const SizedBox(height: 16),
+        if (isLogin) ...[
+          Row(
+            children: [
+              Checkbox(
+                value: rememberEmail,
+                onChanged: (value) {
+                  setState(() {
+                    rememberEmail = value ?? false;
+                  });
+                },
+              ),
+              const Text("Remember Email"),
+            ],
+          ),
+          const SizedBox(height: 8),
+        ],
+        const SizedBox(height: 8),
         ElevatedButton(
           onPressed: isLoading ? null : handleAuth,
           child: Text(isLogin ? 'Login' : 'Sign Up'),

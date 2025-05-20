@@ -1,11 +1,9 @@
 class InputValidators {
-  static String? Validate(String input, String type){
-    switch (type){
+  static String? Validate(String input, String type) {
+    switch (type) {
       case 'email':
-        if(input.trim().isEmpty) {
-          return 'Email is required';
-        }
-        if(!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(input)){
+        if (input.trim().isEmpty) return 'Email is required';
+        if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(input)) {
           return 'Enter a valid email';
         }
         return null;
@@ -23,6 +21,4 @@ class InputValidators {
         return null;
     }
   }
-
-  
 }

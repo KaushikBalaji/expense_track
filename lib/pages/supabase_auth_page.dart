@@ -1,7 +1,7 @@
+import 'package:expense_track/services/supabase_services.dart';
 import 'package:expense_track/widgets/CustomAppbar.dart';
 import 'package:expense_track/widgets/CustomSidebar.dart';
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dashboard_page.dart';
 
 class AuthPage extends StatefulWidget {
@@ -18,26 +18,36 @@ class _AuthPageState extends State<AuthPage> {
   bool isLogin = true;
   bool isLoading = false;
 
+  final service = SupabaseService();
+
   Future<void> handleAuth() async {
     setState(() => isLoading = true);
+
+    final email = emailController.text.trim();
+    final password = passwordController.text.trim();
+
     try {
-      final email = emailController.text.trim();
-      final password = passwordController.text.trim();
-      final name = nameController.text.trim();
       if (isLogin) {
-        await Supabase.instance.client.auth.signInWithPassword(
-          email: email,
-          password: password,
-        );
-        print('User successful login for $name');
+        await service.signIn(email: email, password: password);
+        if (!mounted) return;
+        Navigator.of(context).pop(); // Close dialog
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("Login successful")));
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const DashboardPage()),
         );
       } else {
-        await Supabase.instance.client.auth.signUp(
-          email: email,
-          password: password,
+        await service.signUp(email: email, password: password);
+        if (!mounted) return;
+        Navigator.of(context).pop(); // Close dialog
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Signup successful. Check your email for Confirmation")),
+        );
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const DashboardPage()),
         );
       }
     } catch (e) {
@@ -47,6 +57,29 @@ class _AuthPageState extends State<AuthPage> {
     } finally {
       setState(() => isLoading = false);
     }
+  }
+
+  Future<void> handleLogout() async {
+    try {
+      await service.signOut();
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Logged out successfully")));
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const DashboardPage()),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Error: ${e.toString()}")));
+    }
+  }
+
+  void showSnackbar(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
