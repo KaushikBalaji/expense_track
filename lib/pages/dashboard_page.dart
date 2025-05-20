@@ -1,9 +1,12 @@
+import 'package:expense_track/widgets/dashboard_charts.dart';
+import 'package:expense_track/widgets/date_selector.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart'; // For formatting months
+import 'package:intl/intl.dart';
+import 'package:hive/hive.dart';
+import 'package:syncfusion_flutter_charts/charts.dart';
+import '../models/entry.dart';
 import '../widgets/CustomAppbar.dart';
 import '../widgets/CustomSidebar.dart';
-import 'package:hive/hive.dart';
-import '../models/entry.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -13,45 +16,52 @@ class DashboardPage extends StatefulWidget {
 }
 
 class _DashboardPageState extends State<DashboardPage> {
-  // Month selection
   DateTime _selectedMonth = DateTime.now();
-
-  // Example sync status
   bool _isSynced = true;
 
-  //Hive connection
   late Box<Entry> _box;
   double _totalIncome = 0;
   double _totalExpenses = 0;
+  List<ChartData> _incomeChartData = [];
+  List<ChartData> _expenseChartData = [];
 
-  // Dummy summary values (replace with actual logic)
-  double totalExpenses = 1234.56;
-  double totalIncome = 5000.00;
+  double get getBalance => _totalIncome - _totalExpenses;
+  String get curMonthLabel => DateFormat.yMMMM().format(_selectedMonth);
 
-  String get formattedMonth => DateFormat.yMMMM().format(_selectedMonth);
-  double get balance => totalIncome - totalExpenses;
+  DateRangeType _selectedRange = DateRangeType.monthly;
+  DateTimeRange? _customRange;
 
   @override
   void initState() {
     super.initState();
-    _box = Hive.box<Entry>('entriesbox');
+    _box = Hive.box<Entry>('entriesBox');
     _calculateSummary();
+    _generateChartData();
   }
 
   void _calculateSummary() {
-    final entries =
-        _box.values.where((entry) {
-          final isSameMonth =
-              entry.date.month == _selectedMonth.month &&
-              entry.date.year == _selectedMonth.year;
-          return isSameMonth;
-        }).toList();
+    Iterable<Entry> entries;
+
+    if (_selectedRange == DateRangeType.custom && _customRange != null) {
+      entries = _box.values.where((entry) {
+        return entry.date.isAfter(
+              _customRange!.start.subtract(const Duration(days: 1)),
+            ) &&
+            entry.date.isBefore(_customRange!.end.add(const Duration(days: 1)));
+      });
+    } else {
+      entries = _box.values.where(
+        (entry) =>
+            entry.date.month == _selectedMonth.month &&
+            entry.date.year == _selectedMonth.year,
+      );
+    }
 
     double income = 0;
     double expenses = 0;
 
     for (var e in entries) {
-      if (e.type == 'income') {
+      if (e.type.toLowerCase() == 'income') {
         income += e.amount;
       } else {
         expenses += e.amount;
@@ -64,10 +74,75 @@ class _DashboardPageState extends State<DashboardPage> {
     });
   }
 
+  void _generateChartData() {
+    Iterable<Entry> entries;
+
+    if (_selectedRange == DateRangeType.custom && _customRange != null) {
+      entries = _box.values.where((entry) {
+        return entry.date.isAfter(
+              _customRange!.start.subtract(const Duration(days: 1)),
+            ) &&
+            entry.date.isBefore(_customRange!.end.add(const Duration(days: 1)));
+      });
+    } else {
+      entries = _box.values.where(
+        (entry) =>
+            entry.date.month == _selectedMonth.month &&
+            entry.date.year == _selectedMonth.year,
+      );
+    }
+
+    final Map<String, double> incomeSums = {};
+    final Map<String, double> expenseSums = {};
+
+    for (var entry in entries) {
+      final tag = entry.tag;
+      if (entry.type.toLowerCase() == 'income') {
+        incomeSums[tag] = (incomeSums[tag] ?? 0) + entry.amount;
+      } else {
+        expenseSums[tag] = (expenseSums[tag] ?? 0) + entry.amount;
+      }
+    }
+
+    final List<Color> defaultColors = [
+      Colors.red,
+      Colors.green,
+      Colors.blue,
+      Colors.orange,
+      Colors.purple,
+      Colors.teal,
+      Colors.brown,
+      Colors.indigo,
+    ];
+
+    int colorIndex = 0;
+    _incomeChartData =
+        incomeSums.entries.map((e) {
+          return ChartData(
+            e.key,
+            e.value,
+            defaultColors[colorIndex++ % defaultColors.length],
+          );
+        }).toList();
+
+    colorIndex = 0;
+    _expenseChartData =
+        expenseSums.entries.map((e) {
+          return ChartData(
+            e.key,
+            e.value,
+            defaultColors[colorIndex++ % defaultColors.length],
+          );
+        }).toList();
+
+    setState(() {});
+  }
+
   void _previousMonth() {
     setState(() {
       _selectedMonth = DateTime(_selectedMonth.year, _selectedMonth.month - 1);
       _calculateSummary();
+      _generateChartData();
     });
   }
 
@@ -75,11 +150,184 @@ class _DashboardPageState extends State<DashboardPage> {
     setState(() {
       _selectedMonth = DateTime(_selectedMonth.year, _selectedMonth.month + 1);
       _calculateSummary();
+      _generateChartData();
     });
   }
 
-  String get curMonthLabel => DateFormat.yMMMM().format(_selectedMonth);
-  double get getBalance => _totalIncome - _totalExpenses;
+  void _onCategoryTap(String type, String category) {
+    String normalizedType = type.trim().toLowerCase();
+    if (normalizedType == 'expenses') normalizedType = 'expense';
+    if (normalizedType == 'incomes') normalizedType = 'income';
+
+    final normalizedCategory = category.trim().toLowerCase();
+
+    final entries =
+        _box.values.where((entry) {
+          final entryType = entry.type.trim().toLowerCase();
+          final entryTag = entry.tag.trim().toLowerCase();
+          final isMatchingType = entryType == normalizedType;
+          final isMatchingTag = entryTag == normalizedCategory;
+
+          bool isInRange = false;
+
+          if (_selectedRange == DateRangeType.custom && _customRange != null) {
+            isInRange =
+                entry.date.isAfter(
+                  _customRange!.start.subtract(const Duration(days: 1)),
+                ) &&
+                entry.date.isBefore(
+                  _customRange!.end.add(const Duration(days: 1)),
+                );
+          } else {
+            isInRange =
+                entry.date.month == _selectedMonth.month &&
+                entry.date.year == _selectedMonth.year;
+          }
+
+          return isMatchingType && isMatchingTag && isInRange;
+        }).toList();
+
+    double totalAmount = entries.fold(0, (sum, e) => sum + e.amount);
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder:
+          (_) => Padding(
+            padding: const EdgeInsets.all(16.0),
+            child:
+                entries.isEmpty
+                    ? const Center(child: Text("No entries found"))
+                    : Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 4,
+                          margin: const EdgeInsets.only(bottom: 16),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[400],
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              '$category (${entries.length})',
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              '₹${totalAmount.toStringAsFixed(2)}',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color:
+                                    normalizedType == 'income'
+                                        ? Colors.green
+                                        : Colors.red,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Flexible(
+                          child: ListView.separated(
+                            shrinkWrap: true,
+                            itemCount: entries.length,
+                            separatorBuilder:
+                                (_, __) => const SizedBox(height: 8),
+                            itemBuilder: (context, index) {
+                              final entry = entries[index];
+                              return Container(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                  horizontal: 16,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context).cardColor,
+                                  borderRadius: BorderRadius.circular(12),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.grey.withOpacity(0.1),
+                                      blurRadius: 6,
+                                      offset: const Offset(0, 3),
+                                    ),
+                                  ],
+                                ),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          entry.title,
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          DateFormat.yMMMd().format(entry.date),
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.grey,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    Text(
+                                      '₹${entry.amount.toStringAsFixed(2)}',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        color:
+                                            normalizedType == 'income'
+                                                ? Colors.green
+                                                : Colors.red,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+          ),
+    );
+  }
+
+  Future<void> _selectMonthYear(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedMonth,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(DateTime.now().year + 5),
+      initialDatePickerMode: DatePickerMode.year,
+      helpText: 'Select month and year',
+    );
+
+    if (picked != null &&
+        (picked.month != _selectedMonth.month ||
+            picked.year != _selectedMonth.year)) {
+      setState(() {
+        _selectedMonth = DateTime(picked.year, picked.month);
+        _calculateSummary();
+        _generateChartData();
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -88,21 +336,21 @@ class _DashboardPageState extends State<DashboardPage> {
       body: Builder(
         builder: (scaffoldContext) {
           return SafeArea(
-            child: Column(
-              children: [
-                // App Bar with Sync Status
-                CustomAppBar(
-                  title: 'Dashboard',
-                  showBackButton: false,
-                  leading: IconButton(
-                    icon: const Icon(Icons.menu),
-                    onPressed: () {
-                      Scaffold.of(scaffoldContext).openDrawer();
-                    },
-                  ),
-                  actions: [
-                    Row(
-                      children: [
+            child: GestureDetector(
+              onTap: () => FocusScope.of(context).unfocus(), // Dismiss dropdown
+              child: SingleChildScrollView(
+                child: Column(
+                  children: [
+                    CustomAppBar(
+                      title: 'Dashboard',
+                      showBackButton: false,
+                      leading: IconButton(
+                        icon: const Icon(Icons.menu),
+                        onPressed: () {
+                          Scaffold.of(scaffoldContext).openDrawer();
+                        },
+                      ),
+                      actions: [
                         Icon(
                           _isSynced ? Icons.cloud_done : Icons.cloud_off,
                           color: _isSynced ? Colors.green : Colors.red,
@@ -110,81 +358,71 @@ class _DashboardPageState extends State<DashboardPage> {
                         const SizedBox(width: 8),
                       ],
                     ),
+
+                    // Summary Cards
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        children: [
+                          _buildCard(
+                            'Total Expenses',
+                            '₹ ${_totalExpenses.toStringAsFixed(2)}',
+                            Colors.red,
+                          ),
+                          const SizedBox(height: 12),
+                          _buildCard(
+                            'Total Income',
+                            '₹ ${_totalIncome.toStringAsFixed(2)}',
+                            Colors.green,
+                          ),
+                          const SizedBox(height: 12),
+                          _buildCard(
+                            'Balance',
+                            '₹ ${getBalance.toStringAsFixed(2)}',
+                            Colors.blue,
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Date Selector moved here
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: DateSelector(
+                        selectedRange: _selectedRange,
+                        selectedDate: _selectedMonth,
+                        customRange: _customRange,
+                        onChanged: ({
+                          required DateRangeType rangeType,
+                          required DateTime date,
+                          DateTimeRange? customRange,
+                        }) {
+                          setState(() {
+                            _selectedRange = rangeType;
+                            _selectedMonth = date;
+                            _customRange = customRange;
+                            _calculateSummary();
+                            _generateChartData();
+                          });
+                        },
+                      ),
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    // Chart
+                    DashboardChart(
+                      incomeChartData: _incomeChartData,
+                      expenseChartData: _expenseChartData,
+                      tooltipBehavior: TooltipBehavior(
+                        enable: false,
+                        shouldAlwaysShow: false,
+                      ),
+                      onCategoryTap: _onCategoryTap,
+                    ),
                   ],
                 ),
-
-                // Month Selector Row
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16.0,
-                    vertical: 8,
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      IconButton(
-                        onPressed: _previousMonth,
-                        icon: const Icon(Icons.arrow_left),
-                      ),
-                      SizedBox(width: 10),
-                      Text(
-                        curMonthLabel,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      SizedBox(width: 10),
-
-                      IconButton(
-                        onPressed: _nextMonth,
-                        icon: const Icon(Icons.arrow_right),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Summary Cards
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    children: [
-                      _buildCard(
-                        'Total Expenses',
-                        '₹ ${_totalExpenses.toStringAsFixed(2)}',
-                        Colors.red,
-                      ),
-                      const SizedBox(height: 12),
-                      _buildCard(
-                        'Total Income',
-                        '₹ ${_totalIncome.toStringAsFixed(2)}',
-                        Colors.green,
-                      ),
-                      const SizedBox(height: 12),
-                      _buildCard(
-                        'Balance',
-                        '₹ ${getBalance.toStringAsFixed(2)}',
-                        Colors.blue,
-                      ),
-                    ],
-                  ),
-                ),
-
-                // // Placeholder for future Pie/Bar Charts
-                // const Padding(
-                //   padding: EdgeInsets.symmetric(horizontal: 16.0),
-                //   child: Align(
-                //     alignment: Alignment.centerLeft,
-                //     child: Text(
-                //       'Spending Insights (Coming Soon)',
-                //       style: TextStyle(
-                //         fontSize: 16,
-                //         fontWeight: FontWeight.w600,
-                //       ),
-                //     ),
-                //   ),
-                // ),
-              ],
+              ),
             ),
           );
         },
@@ -192,7 +430,6 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  // Card builder
   Widget _buildCard(String title, String amount, Color color) {
     return Card(
       elevation: 5,
