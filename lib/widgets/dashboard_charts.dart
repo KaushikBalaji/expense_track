@@ -1,4 +1,3 @@
-// dashboard_chart.dart
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
@@ -34,16 +33,17 @@ class DashboardChart extends StatelessWidget {
           child:
               isWide
                   ? Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(child: _buildChart("Expense", expenseChartData)),
-                      const SizedBox(width: 16),
+                      const SizedBox(width: 24),
                       Expanded(child: _buildChart("Income", incomeChartData)),
                     ],
                   )
                   : Column(
                     children: [
                       _buildChart("Expense", expenseChartData),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 32),
                       _buildChart("Income", incomeChartData),
                     ],
                   ),
@@ -53,8 +53,11 @@ class DashboardChart extends StatelessWidget {
   }
 
   Widget _buildChart(String title, List<ChartData> data) {
+    final total = data.fold<double>(0, (sum, item) => sum + item.amount);
+
     if (data.isEmpty) {
       return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             title,
@@ -69,40 +72,93 @@ class DashboardChart extends StatelessWidget {
               fontStyle: FontStyle.italic,
             ),
           ),
-          const SizedBox(height: 24),
         ],
       );
     }
+
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           title,
           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
-        SizedBox(
-          height: 200,
-          child: SfCircularChart(
-            legend: Legend(
-              isVisible: true,
-              overflowMode: LegendItemOverflowMode.wrap,
-              position: LegendPosition.right,
-            ),
-            tooltipBehavior: tooltipBehavior,
-            series: <CircularSeries>[
-              PieSeries<ChartData, String>(
-                dataSource: data,
-                xValueMapper: (ChartData data, _) => data.category,
-                yValueMapper: (ChartData data, _) => data.amount,
-                pointColorMapper: (ChartData data, _) => data.color,
-                dataLabelSettings: const DataLabelSettings(isVisible: true),
-                onPointTap: (details) {
-                  if (onCategoryTap != null) {
-                    onCategoryTap!(
-                      title.toLowerCase(),
-                      data[details.pointIndex!].category,
-                    );
-                  }
-                },
+        const SizedBox(height: 16),
+
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(width: 16),
+              // Chart
+              SizedBox(
+                height: 200,
+                width: 200,
+                child: SfCircularChart(
+                  tooltipBehavior: tooltipBehavior,
+                legend: const Legend(isVisible: false), // Hide default legend
+                series: <CircularSeries>[
+                  DoughnutSeries<ChartData, String>(
+                    animationDuration: 1500,
+                    dataSource: data,
+                    radius: '100%',
+                    innerRadius: '60%',
+                    xValueMapper: (ChartData d, _) => d.category,
+                    yValueMapper: (ChartData d, _) => d.amount,
+                    pointColorMapper: (ChartData d, _) => d.color,
+                    dataLabelSettings: const DataLabelSettings(
+                      isVisible: false,
+                    ),
+                    onPointTap: (details) {
+                      if (onCategoryTap != null) {
+                        onCategoryTap!(
+                          title.toLowerCase(),
+                          data[details.pointIndex!].category,
+                        );
+                      }
+                    },
+                  ),
+                ],
+                ),
+              ),
+              const SizedBox(width: 16),
+
+              // Custom Legend (no Expanded here)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: data.map((d) {
+                  final percentage = total == 0 ? 0 : (d.amount / total * 100);
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 12,
+                          height: 12,
+                          decoration: BoxDecoration(
+                            color: d.color,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          d.category,
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '${percentage.toStringAsFixed(1)}%',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
               ),
             ],
           ),

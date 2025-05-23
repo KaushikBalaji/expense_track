@@ -17,7 +17,7 @@ class DashboardPage extends StatefulWidget {
 
 class _DashboardPageState extends State<DashboardPage> {
   DateTime _selectedMonth = DateTime.now();
-  bool _isSynced = true;
+  final bool _isSynced = true;
 
   late Box<Entry> _box;
   double _totalIncome = 0;
@@ -40,22 +40,7 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   void _calculateSummary() {
-    Iterable<Entry> entries;
-
-    if (_selectedRange == DateRangeType.custom && _customRange != null) {
-      entries = _box.values.where((entry) {
-        return entry.date.isAfter(
-              _customRange!.start.subtract(const Duration(days: 1)),
-            ) &&
-            entry.date.isBefore(_customRange!.end.add(const Duration(days: 1)));
-      });
-    } else {
-      entries = _box.values.where(
-        (entry) =>
-            entry.date.month == _selectedMonth.month &&
-            entry.date.year == _selectedMonth.year,
-      );
-    }
+    final entries = _getFilteredEntries();
 
     double income = 0;
     double expenses = 0;
@@ -75,21 +60,14 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   void _generateChartData() {
-    Iterable<Entry> entries;
+    final entries = _getFilteredEntries();
 
-    if (_selectedRange == DateRangeType.custom && _customRange != null) {
-      entries = _box.values.where((entry) {
-        return entry.date.isAfter(
-              _customRange!.start.subtract(const Duration(days: 1)),
-            ) &&
-            entry.date.isBefore(_customRange!.end.add(const Duration(days: 1)));
+    if (entries.isEmpty) {
+      setState(() {
+        _incomeChartData = [];
+        _expenseChartData = [];
       });
-    } else {
-      entries = _box.values.where(
-        (entry) =>
-            entry.date.month == _selectedMonth.month &&
-            entry.date.year == _selectedMonth.year,
-      );
+      return;
     }
 
     final Map<String, double> incomeSums = {};
@@ -138,21 +116,7 @@ class _DashboardPageState extends State<DashboardPage> {
     setState(() {});
   }
 
-  void _previousMonth() {
-    setState(() {
-      _selectedMonth = DateTime(_selectedMonth.year, _selectedMonth.month - 1);
-      _calculateSummary();
-      _generateChartData();
-    });
-  }
 
-  void _nextMonth() {
-    setState(() {
-      _selectedMonth = DateTime(_selectedMonth.year, _selectedMonth.month + 1);
-      _calculateSummary();
-      _generateChartData();
-    });
-  }
 
   void _onCategoryTap(String type, String category) {
     String normalizedType = type.trim().toLowerCase();
@@ -162,29 +126,11 @@ class _DashboardPageState extends State<DashboardPage> {
     final normalizedCategory = category.trim().toLowerCase();
 
     final entries =
-        _box.values.where((entry) {
+        _getFilteredEntries().where((entry) {
           final entryType = entry.type.trim().toLowerCase();
           final entryTag = entry.tag.trim().toLowerCase();
-          final isMatchingType = entryType == normalizedType;
-          final isMatchingTag = entryTag == normalizedCategory;
 
-          bool isInRange = false;
-
-          if (_selectedRange == DateRangeType.custom && _customRange != null) {
-            isInRange =
-                entry.date.isAfter(
-                  _customRange!.start.subtract(const Duration(days: 1)),
-                ) &&
-                entry.date.isBefore(
-                  _customRange!.end.add(const Duration(days: 1)),
-                );
-          } else {
-            isInRange =
-                entry.date.month == _selectedMonth.month &&
-                entry.date.year == _selectedMonth.year;
-          }
-
-          return isMatchingType && isMatchingTag && isInRange;
+          return entryType == normalizedType && entryTag == normalizedCategory;
         }).toList();
 
     double totalAmount = entries.fold(0, (sum, e) => sum + e.amount);
@@ -308,25 +254,30 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  Future<void> _selectMonthYear(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: _selectedMonth,
-      firstDate: DateTime(2020),
-      lastDate: DateTime(DateTime.now().year + 5),
-      initialDatePickerMode: DatePickerMode.year,
-      helpText: 'Select month and year',
-    );
 
-    if (picked != null &&
-        (picked.month != _selectedMonth.month ||
-            picked.year != _selectedMonth.year)) {
-      setState(() {
-        _selectedMonth = DateTime(picked.year, picked.month);
-        _calculateSummary();
-        _generateChartData();
-      });
+  Iterable<Entry> _getFilteredEntries() {
+    if (_selectedRange == DateRangeType.custom && _customRange != null) {
+      return _box.values.where(
+        (entry) =>
+            entry.date.isAfter(
+              _customRange!.start.subtract(const Duration(days: 1)),
+            ) &&
+            entry.date.isBefore(_customRange!.end.add(const Duration(days: 1))),
+      );
     }
+
+    if (_selectedRange == DateRangeType.yearly) {
+      return _box.values.where(
+        (entry) => entry.date.year == _selectedMonth.year,
+      );
+    }
+
+    // Monthly (default)
+    return _box.values.where(
+      (entry) =>
+          entry.date.month == _selectedMonth.month &&
+          entry.date.year == _selectedMonth.year,
+    );
   }
 
   @override
@@ -408,7 +359,7 @@ class _DashboardPageState extends State<DashboardPage> {
                       ),
                     ),
 
-                    const SizedBox(height: 12),
+                    // const SizedBox(height: 12),
 
                     // Chart
                     DashboardChart(
