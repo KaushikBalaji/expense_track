@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
-import 'package:uuid/uuid.dart';
 import '../models/entry.dart';
 import '../services/hive_service.dart';
 import '../widgets/CustomAppbar.dart';
@@ -49,22 +48,6 @@ class _TransactionsPageState extends State<TransactionsPage> {
     );
   }
 
-  void _openEditDialog(BuildContext context, Entry entry) {
-    Navigator.of(context).pop(); // Closes the side panel
-
-    showDialog(
-      context: context,
-      builder:
-          (ctx) => EntryDialog(
-            initialEntry: entry,
-            onSuccess: () {
-              setState(() {
-                _entries = Hive.box<Entry>('entriesBox').values.toList();
-              });
-            },
-          ),
-    );
-  }
 
   void _deleteEntry(Entry entry) async {
     await HiveService.deleteExpense(entry);
