@@ -10,11 +10,14 @@ class EntryDialog extends StatefulWidget {
   final bool isEditing;
   final VoidCallback? onSuccess;
 
+  final DateTime? initialDate;
+
   const EntryDialog({
     super.key,
     this.initialEntry,
     this.isEditing = false,
     this.onSuccess,
+    this.initialDate, // <-- new optional param
   });
 
   @override
@@ -25,13 +28,15 @@ class _EntryDialogState extends State<EntryDialog> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _amountController = TextEditingController();
-  DateTime _selectedDate = DateTime.now();
+  late DateTime _selectedDate = DateTime.now();
   String type = 'Income';
   String _selectedTag = 'Salary';
 
   @override
   void initState() {
     super.initState();
+
+    // If editing, load from initialEntry
     if (widget.isEditing && widget.initialEntry != null) {
       final entry = widget.initialEntry!;
       _titleController.text = entry.title;
@@ -39,6 +44,9 @@ class _EntryDialogState extends State<EntryDialog> {
       _selectedDate = entry.date;
       _selectedTag = entry.tag;
       type = _getTagType(entry.tag);
+    } else {
+      // Use initialDate if provided, else fallback to now
+      _selectedDate = widget.initialDate ?? DateTime.now();
     }
   }
 

@@ -10,6 +10,7 @@ class EntryListSection extends StatefulWidget {
   final Function(Entry) onDelete;
   final Function(Entry)? onTap;
   final Animation<Offset>? slideAnimation; // Not used per-entry, so we’ll leave it for future use
+  //final bool isWindows = false;
 
   const EntryListSection({
     super.key,
@@ -17,6 +18,7 @@ class EntryListSection extends StatefulWidget {
     required this.onDelete,
     this.onTap,
     this.slideAnimation,
+    //this.isWindows,
   });
 
   @override
@@ -26,6 +28,7 @@ class EntryListSection extends StatefulWidget {
 class _EntryListSectionState extends State<EntryListSection> {
   DateTime _selectedMonth = DateTime.now();
   Entry? _selectedEntry;
+  
 
   bool get isMobile =>
       defaultTargetPlatform == TargetPlatform.android ||
