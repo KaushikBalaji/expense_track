@@ -30,6 +30,7 @@ class _CategorySelectorSheetState extends State<CategorySelectorSheet> {
     CategoryItem(name: 'Gift', type: 'Income', icon: Icons.card_giftcard),
     CategoryItem(name: 'Award', type: 'Income', icon: Icons.emoji_events),
     CategoryItem(name: 'Investment', type: 'Income', icon: Icons.trending_up),
+    
   ];
 
   final List<CategoryItem> expenseCategories = [
@@ -40,6 +41,12 @@ class _CategorySelectorSheetState extends State<CategorySelectorSheet> {
     CategoryItem(name: 'Subscriptions', type: 'Expense', icon: Icons.subscriptions),
     CategoryItem(name: 'Entertainment', type: 'Expense', icon: Icons.movie),
     CategoryItem(name: 'Gift', type: 'Expense', icon: Icons.card_giftcard),
+    CategoryItem(name: 'Medical', type: 'Expense', icon: Icons.medical_services),
+    CategoryItem(name: 'Fitness', type: 'Expense', icon: Icons.fitness_center),
+    //CategoryItem(name: 'Self care', type: 'Expense', icon: Icons.self_improvement),
+
+
+
   ];
 
   @override
@@ -51,8 +58,6 @@ class _CategorySelectorSheetState extends State<CategorySelectorSheet> {
   @override
   Widget build(BuildContext context) {
     final showOnlyType = widget.allowedType;
-    final isExpenseOnly = showOnlyType == 'Expense';
-    final isIncomeOnly = showOnlyType == 'Income';
 
     return SizedBox(
       height: 400,

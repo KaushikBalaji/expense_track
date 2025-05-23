@@ -1,5 +1,58 @@
 import 'package:flutter/material.dart';
 
+class VscodeTheme {
+  ThemeData lightTheme = ThemeData(
+    brightness: Brightness.light,
+    scaffoldBackgroundColor: const Color(0xFFF3F3F3),
+    cardColor: const Color(0xFFFFFFFF),
+    appBarTheme: const AppBarTheme(
+      backgroundColor: Color(0xFF007ACC), // VS Code titlebar blue
+      foregroundColor: Colors.white,
+    ),
+    drawerTheme: const DrawerThemeData(backgroundColor: Color(0xFFE5E5E5)),
+    floatingActionButtonTheme: const FloatingActionButtonThemeData(
+      backgroundColor: Color(0xFF0E639C),
+    ),
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: const Color(0xFF0E639C),
+        foregroundColor: Colors.white,
+      ),
+    ),
+    colorScheme: ColorScheme.fromSeed(
+      seedColor: Color(0xFF007ACC),
+      brightness: Brightness.light,
+    ),
+    useMaterial3: true,
+  );
+
+  ThemeData darkTheme = ThemeData(
+    brightness: Brightness.dark,
+    scaffoldBackgroundColor: const Color(0xFF1E1E1E),
+    cardColor: const Color(0xFF252526),
+    appBarTheme: const AppBarTheme(
+      backgroundColor: Color(0xFF333333),
+      foregroundColor: Colors.white,
+    ),
+    drawerTheme: const DrawerThemeData(backgroundColor: Color(0xFF2D2D2D)),
+    floatingActionButtonTheme: const FloatingActionButtonThemeData(
+      backgroundColor: Color(0xFF007ACC),
+    ),
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: const Color(0xFF007ACC),
+        foregroundColor: Colors.white,
+      ),
+    ),
+    colorScheme: ColorScheme.fromSeed(
+      seedColor: Color(0xFF007ACC),
+      brightness: Brightness.dark,
+    ),
+    useMaterial3: true,
+  );
+}
+
+
 class SunsetTheme {
   ThemeData lightTheme = ThemeData(
     brightness: Brightness.light,
@@ -208,7 +261,7 @@ class RetroTheme {
 }
 
 class OceanTheme {
-  static ThemeData lightTheme = ThemeData(
+  ThemeData lightTheme = ThemeData(
     brightness: Brightness.light,
     scaffoldBackgroundColor: const Color(0xFFF1F8E9), // Mint
     cardColor: const Color(0xFFE6F4EA), // Soft mint for cards
@@ -235,7 +288,7 @@ class OceanTheme {
     useMaterial3: true,
   );
 
-  static ThemeData darkTheme = ThemeData(
+  ThemeData darkTheme = ThemeData(
     brightness: Brightness.dark,
     scaffoldBackgroundColor: const Color(0xFF1C313A), // Dark Blue-Grey
     cardColor: const Color(
