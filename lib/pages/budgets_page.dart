@@ -1,4 +1,3 @@
-import 'dart:ui' as BorderType;
 
 import 'package:dotted_border/dotted_border.dart';
 import 'package:expense_track/widgets/CustomAppbar.dart';
@@ -7,7 +6,6 @@ import 'package:expense_track/widgets/category_selector_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:uuid/uuid.dart';
-import 'package:dotted_border/dotted_border.dart';
 import '../models/entry.dart';
 
 import '../models/budget.dart'; // Adjust path based on your structure
@@ -147,25 +145,6 @@ class _BudgetsPageState extends State<BudgetsPage> {
     );
   }
 
-  // Widget _buildBudgetCard(Budget budget) {
-  //   return Card(
-  //     elevation: 2,
-  //     margin: const EdgeInsets.symmetric(vertical: 6),
-  //     child: ListTile(
-  //       leading: const Icon(Icons.trending_down, color: Colors.red),
-  //       title: Text(budget.category),
-  //       subtitle: Text('₹${budget.amount.toStringAsFixed(0)}'),
-  //       trailing: IconButton(
-  //         icon: const Icon(Icons.delete_outline),
-  //         onPressed: () async {
-  //           await budget.delete();
-  //           setState(() {});
-  //         },
-  //       ),
-  //     ),
-  //   );
-  // }
-
   Widget _buildBudgetCard(Budget budget) {
     final now = DateTime.now();
     final currentMonth = DateTime(now.year, now.month);
@@ -186,7 +165,7 @@ class _BudgetsPageState extends State<BudgetsPage> {
     );
 
     print('Spent: $spent');
-    final remaining = (budget.amount - spent).clamp(0, budget.amount);
+    (budget.amount - spent).clamp(0, budget.amount);
     final usagePercent = (spent / budget.amount).clamp(0, 1).toDouble();
     print('Remaining: $usagePercent');
 
