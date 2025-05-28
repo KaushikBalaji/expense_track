@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:expense_track/widgets/CustomAppbar.dart';
 import 'package:expense_track/widgets/CustomSidebar.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SettingsPage extends StatefulWidget {
   final Function(String) onThemeChanged; // callback for theme change
@@ -27,13 +28,101 @@ class _SettingsPageState extends State<SettingsPage> {
     'Forest',
     'Midnight',
     'Retro',
-    'Vscode'
+    'Vscode',
   ];
+
 
   @override
   void initState() {
     super.initState();
     _selectedTheme = widget.currentTheme;
+  }
+
+  void _showSyncFrequencyPicker() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedFrequency = prefs.getString('syncFrequency') ?? 'Daily';
+    final TextEditingController _customController = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) {
+        String selected = savedFrequency;
+
+        return StatefulBuilder(
+          builder:
+              (context, setState) => Padding(
+                padding: MediaQuery.of(
+                  context,
+                ).viewInsets.add(const EdgeInsets.all(16)),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      'Select Sync Frequency',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    ...['Daily', 'Weekly', 'Monthly'].map(
+                      (option) => RadioListTile<String>(
+                        title: Text(option),
+                        value: option,
+                        groupValue: selected,
+                        onChanged: (value) {
+                          if (value != null) {
+                            setState(() {
+                              selected = value;
+                              _customController.clear();
+                            });
+                          }
+                        },
+                      ),
+                    ),
+                    const Divider(),
+                    RadioListTile<String>(
+                      title: Row(
+                        children: [
+                          const Text('Every'),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: TextField(
+                              controller: _customController,
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(
+                                hintText: 'Enter days',
+                              ),
+                              onChanged: (value) {
+                                setState(() {
+                                  selected = 'custom:$value';
+                                });
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          const Text('days'),
+                        ],
+                      ),
+                      value: selected,
+                      groupValue: selected,
+                      onChanged: (_) {},
+                    ),
+                    const SizedBox(height: 12),
+                    ElevatedButton(
+                      onPressed: () {
+                        prefs.setString('syncFrequency', selected);
+                        Navigator.pop(context);
+                      },
+                      child: const Text('Save'),
+                    ),
+                  ],
+                ),
+              ),
+        );
+      },
+    );
   }
 
   void _showThemePicker() {
@@ -126,6 +215,19 @@ class _SettingsPageState extends State<SettingsPage> {
                 },
               ),
               const Divider(),
+              _buildOption(
+                icon: Icons.person_outline,
+                label: 'Category Page',
+                onTap: () {
+                  Navigator.pushNamed(context, '/categories');
+                },
+              ),
+              _buildOption(
+                icon: Icons.sync,
+                label: 'Auto Sync Frequency',
+                onTap: _showSyncFrequencyPicker,
+              ),
+
               _buildOption(
                 icon: Icons.color_lens_outlined,
                 label: 'Change Theme',

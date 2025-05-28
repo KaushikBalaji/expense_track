@@ -1,5 +1,7 @@
 import 'package:expense_track/models/budget.dart';
+import 'package:expense_track/models/category_item.dart';
 import 'package:expense_track/pages/budgets_page.dart';
+import 'package:expense_track/pages/category_page.dart';
 import 'package:expense_track/pages/monthly_transactions_page.dart';
 import 'package:expense_track/pages/sync_status_page.dart';
 import 'package:expense_track/pages/transactions_page.dart';
@@ -14,6 +16,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:month_year_picker/month_year_picker.dart';
 import 'pages/settings_page.dart';
+import 'utils/sync_services.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,11 +38,24 @@ void main() async {
     Hive.registerAdapter(BudgetAdapter());
   }
 
+  // to save categories in hive
+  if (!Hive.isAdapterRegistered(4)) {
+    Hive.registerAdapter(CategoryItemAdapter());
+  }
+
+  //await Hive.deleteBoxFromDisk('categories');
+
+
+
   print('Opening expensesBox...');
   await HiveService.initialize();
   // Initialize the HiveService to open the box
 
   await Hive.openBox<Budget>('budgetsBox');
+  await Hive.openBox<List>('categoryStatus');
+  await Hive.openBox<CategoryItem>('categories');
+  await Hive.openBox<List>('deletedEntries');
+  await Hive.openBox<Entry>('entriesBox');
 
   runApp(const MyApp());
 }
@@ -70,6 +86,7 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
+    trySyncData();
     selectedThemeName = 'Vscode'; // default theme
     currentThemeData = getThemeByName(selectedThemeName);
   }
@@ -91,7 +108,9 @@ class _MyAppState extends State<MyApp> {
       case 'Sunset':
         return isDarkMode ? SunsetTheme().darkTheme : SunsetTheme().lightTheme;
       case 'Midnight':
-        return isDarkMode ? MidnightTheme().darkTheme : MidnightTheme().lightTheme;
+        return isDarkMode
+            ? MidnightTheme().darkTheme
+            : MidnightTheme().lightTheme;
       case 'Retro':
         return isDarkMode ? RetroTheme().darkTheme : RetroTheme().lightTheme;
       case 'Ocean':
@@ -117,7 +136,8 @@ class _MyAppState extends State<MyApp> {
         '/dashboard': (context) => const DashboardPage(),
         '/transactions':
             (context) => const TransactionsPage(title: 'All Transactions'),
-        '/win_transactions': (context) => const MonthlyTransactionsPage(title: 'Transactions'),
+        '/win_transactions':
+            (context) => const MonthlyTransactionsPage(title: 'Transactions'),
         '/syncstatus': (context) => const SyncStatusPage(),
         '/budgets': (context) => const BudgetsPage(),
         '/settings':
@@ -125,21 +145,13 @@ class _MyAppState extends State<MyApp> {
               currentTheme: selectedThemeName,
               onThemeChanged: (newTheme) => handleThemeChange(newTheme),
             ),
+
+        '/categories': (context) => CategoryManagementPage(),
       },
       debugShowCheckedModeBanner: false,
       title: 'Expense Tracker',
-      // theme: isDarkMode ? ForestTheme().darkTheme : ForestTheme().lightTheme,
       theme: currentThemeData,
       home: DashboardPage(), // your main app screen
-      // home: SettingsPage(
-      //   currentTheme: selectedThemeName,
-      //   onThemeChanged: (newTheme) {
-      //     setState(() {
-      //       selectedThemeName = newTheme;
-      //       currentThemeData = getThemeByName(newTheme);
-      //     });
-      //   },
-      // ),
     );
   }
 }

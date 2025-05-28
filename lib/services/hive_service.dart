@@ -1,20 +1,20 @@
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/entry.dart';
+import '../models/category_item.dart';
 
 class HiveService {
-
   // Make sure box is opened before use
   static late Box<Entry> _entryBox;
-
+  static late Box<CategoryItem> _categoryBox;
 
   // Initialize box in this static method
   static Future<void> initialize() async {
     // _box = await Hive.openBox<Entry>('entriesBox');
     // print('Hivebox open');
     try {
-      
       _entryBox = await Hive.openBox<Entry>('entriesBox');
+      _categoryBox = await Hive.openBox<CategoryItem>('categories');
 
       print('Hivebox open');
     } catch (e) {
@@ -32,7 +32,10 @@ class HiveService {
   }
 
   static Future<void> deleteExpense(Entry expense) async {
-    final key = _entryBox.keys.firstWhere((k) => _entryBox.get(k) == expense, orElse: () => null);
+    final key = _entryBox.keys.firstWhere(
+      (k) => _entryBox.get(k) == expense,
+      orElse: () => null,
+    );
     if (key != null) {
       await _entryBox.delete(key);
     }
@@ -40,5 +43,24 @@ class HiveService {
 
   static Future<void> clearAllExpenses() async {
     await _entryBox.clear();
+  }
+
+  // ---------------------------
+  // 🚀 CATEGORY methods
+  // ---------------------------
+
+  static List<CategoryItem> getAllCategories() => _categoryBox.values.toList();
+
+  static Future<void> uploadCategoriesToCloud(
+    Future<void> Function(CategoryItem item) uploadFn,
+  ) async {
+    final categories = getAllCategories();
+    for (final cat in categories) {
+      try {
+        await uploadFn(cat);
+      } catch (e) {
+        print('Failed to upload ${cat.name}: $e');
+      }
+    }
   }
 }

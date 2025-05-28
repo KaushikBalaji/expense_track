@@ -1,17 +1,20 @@
+import 'package:expense_track/services/supabase_services.dart';
 import 'package:flutter/material.dart';
 import '../models/entry.dart';
 
 class EntryCard extends StatelessWidget {
   final Entry entry;
-  final VoidCallback onDelete;
+  //final VoidCallback onDelete;
   final VoidCallback? onTap;
 
   const EntryCard({
     super.key,
     required this.entry,
-    required this.onDelete,
+    //required this.onDelete,
     required this.onTap,
   });
+
+  
 
   @override
   Widget build(BuildContext context) {
@@ -74,7 +77,8 @@ class EntryCard extends StatelessWidget {
                   );
 
                   if (confirm == true) {
-                    onDelete();
+                    // onDelete();
+                    await SupabaseService.deleteEntry(entry);
                   }
                 },
               ),

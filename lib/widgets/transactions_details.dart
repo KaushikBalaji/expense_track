@@ -55,7 +55,7 @@ class TransactionDetailsPanel extends StatelessWidget {
                 builder:
                     (context) => EntryDialog(
                       initialEntry: entry,
-                      isEditing: true,
+                      mode: EntryDialogMode.edit,
                       onSuccess: () {
                         // Optionally show a toast/snackbar or refresh view
                         ScaffoldMessenger.of(context).showSnackBar(

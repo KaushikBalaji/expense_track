@@ -98,9 +98,11 @@ class _MonthlyTransactionsPageState extends State<MonthlyTransactionsPage> {
       builder:
           (ctx) => EntryDialog(
             initialDate: forDate,
+            mode: EntryDialogMode.add,
             onSuccess: () {
               setState(() {
                 _entries = Hive.box<Entry>('entriesBox').values.toList();
+                _loadEntries();
               });
             },
           ),
@@ -198,6 +200,9 @@ class _MonthlyTransactionsPageState extends State<MonthlyTransactionsPage> {
 
     );
   }
+
+
+  
 
   Widget _buildCalendar() {
     return SizedBox(

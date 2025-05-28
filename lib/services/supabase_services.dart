@@ -1,16 +1,20 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:expense_track/models/category_item.dart';
 import 'package:expense_track/pages/dashboard_page.dart';
 import 'package:expense_track/utils/validators.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart'; // ✅ Added for debugPrint
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:hive/hive.dart';
 import 'package:http/http.dart' as http;
 
+import '../utils/predefined_categories.dart';
 import '../models/entry.dart';
 
 final supabase = Supabase.instance.client;
+final categoryStatus = Hive.box<List>('categorystatus');
 
 class AuthResult {
   final bool success;
@@ -24,12 +28,9 @@ class SupabaseService {
 
   static const entryTable = 'entries';
   static String? get userId => supabase.auth.currentUser?.id;
+  static final Box<Entry> entryBox = Hive.box<Entry>('entriesBox');
 
-  /// ------------------------
-  /// 📡 Connectivity Check
-  /// ------------------------
-  ///
-  Future<bool> hasInternetConnection() async {
+  static Future<bool> hasInternetConnection() async {
     try {
       final result = await InternetAddress.lookup('example.com');
       if (result.isNotEmpty && result[0].rawAddress.isNotEmpty) {
@@ -44,22 +45,15 @@ class SupabaseService {
     }
   }
 
-  /// ------------------------
-  /// 🔐 AUTH METHODS
-  /// ------------------------
-  ///
-
   Future<void> handleAuth({
     required String email,
     required String password,
-    String? name, // Only for signup
+    String? name,
     required bool isLogin,
   }) async {
-    // Input validation
     final emailError = InputValidators.Validate(email, 'email');
     final passwordError = InputValidators.Validate(password, 'password');
-    final nameError =
-        isLogin ? null : InputValidators.Validate(name ?? '', 'name');
+    final nameError = isLogin ? null : InputValidators.Validate(name ?? '', 'name');
 
     if (emailError != null || passwordError != null || nameError != null) {
       throw Exception(
@@ -96,7 +90,7 @@ class SupabaseService {
         throw Exception(e.message);
       }
     } catch (e) {
-      print(e);
+      debugPrint(e.toString());
       throw Exception('An unexpected error occurred during authentication.');
     }
   }
@@ -107,9 +101,9 @@ class SupabaseService {
     try {
       await service.signOut();
       if (!context.mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Logged out successfully")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Logged out successfully")),
+      );
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const DashboardPage()),
         (route) => false,
@@ -133,24 +127,31 @@ class SupabaseService {
     } catch (_) {}
   }
 
-  /// ------------------------
-  /// 🔄 SYNC METHODS
-  /// ------------------------
+  static Future<void> deleteEntry(Entry entry) async {
+    debugPrint('EntryBox open status: ${entryBox.isOpen}');
+    final deletedBox = Hive.box<List>('deletedEntries');
+    final deletedIds = deletedBox.get('deletedIds', defaultValue: <String>[])!.toSet();
+    deletedIds.add(entry.id.toString());
+    await deletedBox.put('deletedIds', deletedIds.toList());
+    debugPrint('ID: $deletedIds added to deletedBox');
 
-  /// Upload all Hive entries to Supabase
+    await entry.delete();
+    debugPrint('Entry ${entry.id} deleted from entryBox');
+  }
+
   static Future<void> syncHiveToSupabase(Box box) async {
     if (userId == null) {
-      print('⚠️ User not authenticated');
+      debugPrint('⚠️ User not authenticated');
       return;
     }
 
-    final entries = box.values.toList();
+    await syncDeletedEntries();
 
-    print('⬆️ Uploading ${entries.length} entries to Supabase...');
+    final entries = box.values.toList();
+    debugPrint('⬆️ Uploading ${entries.length} entries to Supabase...');
 
     for (final entry in entries) {
-      print('🔄 Uploading entry: ${entry.id}');
-
+      debugPrint('🔄 Uploading entry: ${entry.id}');
       final data = {
         'id': entry.id.toString(),
         'user_id': userId,
@@ -160,26 +161,64 @@ class SupabaseService {
         'date': entry.date.toIso8601String(),
         'tag': entry.tag,
       };
-
-      print('📦 Data to upload: $data');
+      debugPrint('📦 Data to upload: $data');
 
       try {
         await supabase.from(entryTable).upsert(data);
-        print('✅ Sync success: ${entry.id}');
+        debugPrint('✅ Sync success: ${entry.id}');
       } catch (e) {
-        print('❌ Error syncing entry ${entry.id}: $e');
+        debugPrint('❌ Error syncing entry ${entry.id}: $e');
       }
     }
   }
 
-  /// Download Supabase entries for this user and insert into Hive
-  static Future<void> syncSupabaseToHive(Box box) async {
+  static Future<void> markEntryAsDeleted(String entryId) async {
+    final box = Hive.box<List>('deletedEntries');
+    final deletedIds = box.get('deletedIds', defaultValue: <String>[])!.toSet();
+    deletedIds.add(entryId);
+    await box.put('deletedIds', deletedIds.toList());
+    await entryBox.delete(entryId);
+  }
+
+  static Future<void> syncDeletedEntries() async {
     if (userId == null) {
-      print('⚠️ User not authenticated');
+      debugPrint('⚠️ User not authenticated');
+      return;
+    }
+    final deletedBox = Hive.box<List>('deletedEntries');
+    final deletedIds = deletedBox.get('deletedIds', defaultValue: <String>[])!.toList();
+
+    if (deletedIds.isEmpty) {
+      debugPrint('No deleted entries to sync.');
       return;
     }
 
-    print('⬇️ Fetching entries from Supabase...');
+    debugPrint('🗑️ Deleting ${deletedIds.length} entries from Supabase...');
+
+    try {
+      for (final id in deletedIds) {
+        debugPrint('Attempting to delete entry $id for user $userId');
+        final response = await supabase
+            .from(entryTable)
+            .delete()
+            .eq('id', id.toString())
+            .eq('user_id', userId!);
+        debugPrint('🗑️ Deletion response for $id: $response');
+      }
+
+      await deletedBox.put('deletedIds', []);
+    } catch (e) {
+      debugPrint('❌ Error deleting entries from Supabase: $e');
+    }
+  }
+
+  static Future<void> syncSupabaseToHive(Box box) async {
+    if (userId == null) {
+      debugPrint('⚠️ User not authenticated');
+      return;
+    }
+
+    debugPrint('⬇️ Fetching entries from Supabase...');
 
     try {
       final response = await supabase
@@ -188,25 +227,130 @@ class SupabaseService {
           .eq('user_id', userId!);
 
       final List<dynamic> data = response;
-
-      print('📥 Fetched ${data.length} entries from Supabase.');
+      debugPrint('📥 Fetched ${data.length} entries from Supabase.');
 
       for (final entry in data) {
         final id = entry['id'].toString();
-
-        print('🧾 Entry from Supabase: $entry');
-        print('🔍 Hive containsKey($id)? ${box.containsKey(id)}');
+        debugPrint('🧾 Entry from Supabase: $entry');
+        debugPrint('🔍 Hive containsKey($id)? ${box.containsKey(id)}');
 
         if (!box.containsKey(id)) {
           final hiveEntry = Entry.fromMap(entry);
           box.put(id, hiveEntry);
-          print('💾 Saved entry to Hive: ${hiveEntry.id}');
+          debugPrint('💾 Saved entry to Hive: ${hiveEntry.id}');
         } else {
-          print('⏩ Entry already exists in Hive. Skipping: $id');
+          debugPrint('⏩ Entry already exists in Hive. Skipping: $id');
         }
       }
     } catch (e) {
-      print('❌ Error fetching entries from Supabase: $e');
+      debugPrint('❌ Error fetching entries from Supabase: $e');
+    }
+  }
+
+  Future<void> uploadCategoryToSupabase({
+    required String categoryId,
+    required bool isActive,
+  }) async {
+    final response = await supabase.from('user_categories').upsert({
+      'category_id': categoryId,
+      'user_id': userId,
+      'is_active': isActive,
+    });
+
+    if (response.error != null) {
+      throw Exception('Supabase error: ${response.error!.message}');
+    }
+
+    debugPrint('Uploaded category status: $categoryId -> isActive = $isActive');
+  }
+
+  static Future<List<Map<String, dynamic>>> fetchUserCategories(String userId) async {
+    try {
+      final response = await supabase
+          .from('categories')
+          .select()
+          .eq('user_id', userId);
+
+      final List<dynamic> data = response;
+      return List<Map<String, dynamic>>.from(data);
+    } catch (e) {
+      throw Exception('Supabase error: $e');
+    }
+  }
+
+  static Future<void> syncCategoriesToSupabase(String userId) async {
+    final data = await fetchUserCategories(userId);
+    final activeIds = data
+        .where((item) => item['is_active'] == true)
+        .map<String>((item) => item['category_id'] as String)
+        .toList();
+
+    await categoryStatus.put('activeCategories', activeIds);
+    debugPrint('Hive updated with ${activeIds.length} active categories from Supabase');
+  }
+
+  static Future<void> uploadAllActiveCategories(String userId) async {
+    final activeIds = categoryStatus.get('activeCategories', defaultValue: <String>[]);
+
+    try {
+      final uploads = activeIds?.map((categoryId) {
+        return {'id': categoryId, 'user_id': userId, 'is_active': true};
+      }).toList();
+
+      await supabase.from('categories').upsert(uploads!);
+      debugPrint('Uploaded ${uploads.length} active categories to Supabase.');
+    } catch (e) {
+      debugPrint('Upload error: $e');
+      rethrow;
+    }
+  }
+
+  static Future<void> downloadAndSaveCategoryStatus(String userId) async {
+    try {
+      final response = await supabase
+          .from('categories')
+          .select('id, is_active')
+          .eq('user_id', userId);
+
+      final activeCategoryIds = <String>[
+        for (var item in response)
+          if (item['is_active'] == true) item['id'] as String,
+      ];
+
+      final categoryStatus = Hive.box<List>('categoryStatus');
+      await categoryStatus.put('activeCategories', activeCategoryIds);
+
+      debugPrint('Downloaded and saved ${activeCategoryIds.length} active categories.');
+    } catch (e) {
+      debugPrint('Download error: $e');
+      rethrow;
+    }
+  }
+
+  static Future<void> uploadAllCategoriesStatus(String userId) async {
+    final categoryBox = Hive.box<CategoryItem>('categories');
+    final activeIds = categoryStatus.get('activeCategories', defaultValue: <String>[])!.toSet();
+
+    try {
+      final List<dynamic> response = await supabase
+          .from('categories')
+          .select('id')
+          .eq('user_id', userId);
+
+      final supabaseIds = response.map((item) => item['id'] as String).toSet();
+      final localIds = categoryBox.values.map((c) => c.id).toSet();
+      final allIds = supabaseIds.union(localIds);
+
+      final uploads = allIds.map((categoryId) {
+        final isActive = activeIds.contains(categoryId);
+        return {'id': categoryId, 'user_id': userId, 'is_active': isActive};
+      }).toList();
+
+      await supabase.from('categories').upsert(uploads, onConflict: 'user_id,id');
+      debugPrint('Uploaded ${uploads.length} categories to Supabase.');
+    } catch (e) {
+      debugPrint('Upload error: $e');
+      rethrow;
     }
   }
 }

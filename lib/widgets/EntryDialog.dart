@@ -1,23 +1,26 @@
+import 'package:expense_track/models/category_item.dart';
+import 'package:expense_track/services/supabase_services.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:hive/hive.dart';
-
 import '../models/entry.dart';
-import 'category_selector_sheet.dart';
+// import 'category_selector_sheet.dart';
+import 'hive_category_selector.dart';
+
+enum EntryDialogMode { add, edit, view }
 
 class EntryDialog extends StatefulWidget {
   final Entry? initialEntry;
-  final bool isEditing;
+  final EntryDialogMode mode;
   final VoidCallback? onSuccess;
-
   final DateTime? initialDate;
 
   const EntryDialog({
     super.key,
     this.initialEntry,
-    this.isEditing = false,
+    this.mode = EntryDialogMode.add,
     this.onSuccess,
-    this.initialDate, // <-- new optional param
+    this.initialDate,
   });
 
   @override
@@ -32,12 +35,14 @@ class _EntryDialogState extends State<EntryDialog> {
   String type = 'Income';
   String _selectedTag = 'Salary';
 
+  late EntryDialogMode _currentMode;
+
   @override
   void initState() {
     super.initState();
+    _currentMode = widget.mode;
 
-    // If editing, load from initialEntry
-    if (widget.isEditing && widget.initialEntry != null) {
+    if (widget.initialEntry != null) {
       final entry = widget.initialEntry!;
       _titleController.text = entry.title;
       _amountController.text = entry.amount.toString();
@@ -45,7 +50,6 @@ class _EntryDialogState extends State<EntryDialog> {
       _selectedTag = entry.tag;
       type = _getTagType(entry.tag);
     } else {
-      // Use initialDate if provided, else fallback to now
       _selectedDate = widget.initialDate ?? DateTime.now();
     }
   }
@@ -54,21 +58,19 @@ class _EntryDialogState extends State<EntryDialog> {
     if (_formKey.currentState!.validate()) {
       final title = _titleController.text.trim();
       final amount = double.parse(_amountController.text.trim());
-
       final box = Hive.box<Entry>('entriesBox');
 
-      if (widget.isEditing && widget.initialEntry != null) {
-        // Update existing entry
-        final updatedEntry = widget.initialEntry!
-          ..title = title
-          ..amount = amount
-          ..date = _selectedDate
-          ..tag = _selectedTag
-          ..type = type;
+      if (_currentMode == EntryDialogMode.edit && widget.initialEntry != null) {
+        final updatedEntry =
+            widget.initialEntry!
+              ..title = title
+              ..amount = amount
+              ..date = _selectedDate
+              ..tag = _selectedTag
+              ..type = type;
 
         await updatedEntry.save();
       } else {
-        // Add new entry
         final newEntry = Entry(
           title: title,
           amount: amount,
@@ -93,47 +95,144 @@ class _EntryDialogState extends State<EntryDialog> {
     );
 
     if (picked != null && picked != _selectedDate) {
-      setState(() {
-        _selectedDate = picked;
-      });
+      setState(() => _selectedDate = picked);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final isViewMode = _currentMode == EntryDialogMode.view;
+
     return AlertDialog(
-      title: Text(widget.isEditing ? 'Edit Transaction' : 'Add Expense'),
-      content: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                controller: _titleController,
-                decoration: const InputDecoration(labelText: 'Title'),
-                validator: (value) =>
-                    value == null || value.trim().isEmpty ? 'Please enter a title' : null,
-              ),
-              TextFormField(
-                controller: _amountController,
-                decoration: const InputDecoration(labelText: 'Amount'),
-                keyboardType: TextInputType.number,
-                validator: (value) {
-                  final amount = double.tryParse(value ?? '');
-                  if (amount == null || amount <= 0) {
-                    return 'Please enter a valid amount';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 10),
-              GestureDetector(
-                onTap: () async {
-                  final selected = await showModalBottomSheet<CategoryItem>(
+      title: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(_getDialogTitle()),
+          if (isViewMode) ...[
+            IconButton(
+              icon: const Icon(Icons.edit, color: Colors.blue),
+              onPressed: () {
+                setState(() {
+                  _currentMode = EntryDialogMode.edit;
+                });
+              },
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete, color: Colors.red),
+              onPressed: () async {
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder:
+                      (_) => AlertDialog(
+                        title: const Text("Confirm Delete"),
+                        content: const Text("Delete this transaction?"),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, false),
+                            child: const Text("Cancel"),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, true),
+                            child: const Text("Delete"),
+                          ),
+                        ],
+                      ),
+                );
+                if (confirm == true && widget.initialEntry != null) {
+                  await SupabaseService.deleteEntry(widget.initialEntry!);
+                  widget.onSuccess?.call();
+                  if (context.mounted) Navigator.of(context).pop();
+                }
+              },
+            ),
+          ],
+        ],
+      ),
+      content: isViewMode ? _buildViewContent() : _buildFormContent(),
+      actions:
+          isViewMode
+              ? [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Close'),
+                ),
+              ]
+              : [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: _submit,
+                  child: Text(
+                    _currentMode == EntryDialogMode.edit ? 'Save' : 'Add',
+                  ),
+                ),
+              ],
+    );
+  }
+
+  Widget _buildFormContent() {
+    return Form(
+      key: _formKey,
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextFormField(
+              controller: _titleController,
+              decoration: const InputDecoration(labelText: 'Title'),
+              validator:
+                  (value) =>
+                      value == null || value.trim().isEmpty
+                          ? 'Please enter a title'
+                          : null,
+            ),
+            TextFormField(
+              controller: _amountController,
+              decoration: const InputDecoration(labelText: 'Amount'),
+              keyboardType: TextInputType.number,
+              validator: (value) {
+                final amount = double.tryParse(value ?? '');
+                if (amount == null || amount <= 0) {
+                  return 'Please enter a valid amount';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 10),
+            GestureDetector(
+              onTap: () async {
+                try {
+                  final selected = await showModalBottomSheet<UICategoryItem>(
                     context: context,
-                    builder: (_) => CategorySelectorSheet(selectedCategory: _selectedTag),
+                    builder: (_) {
+                      return Builder(
+                        builder: (context) {
+                          ErrorWidget.builder = (FlutterErrorDetails details) {
+                            debugPrint(
+                              'Flutter build error: ${details.exception}',
+                            );
+                            return Center(
+                              child: Text(
+                                'Oops! Something went wrong.\n${details.exception}',
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(color: Colors.red),
+                              ),
+                            );
+                          };
+                          print(
+                            'Inside Modalsheet before categorysheet line with selected tag: $_selectedTag',
+                          );
+                          return CategorySelectorSheet(
+                            selectedCategory: _selectedTag,
+                          );
+                        },
+                      );
+                    },
                   );
+
+                  print('Selected tag which i returned is: $_selectedTag');
 
                   if (selected != null) {
                     setState(() {
@@ -141,48 +240,140 @@ class _EntryDialogState extends State<EntryDialog> {
                       type = selected.type;
                     });
                   }
-                },
-                child: InputDecorator(
-                  decoration: const InputDecoration(labelText: 'Category'),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        _selectedTag.isNotEmpty ? _selectedTag : 'Select Category',
-                      ),
-                      const Icon(Icons.arrow_drop_down),
-                    ],
-                  ),
+                } catch (e, stackTrace) {
+                  debugPrint('Caught error outside build: $e');
+                  debugPrintStack(stackTrace: stackTrace);
+                }
+              },
+              child: InputDecorator(
+                decoration: const InputDecoration(labelText: 'Category'),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      _selectedTag.isNotEmpty
+                          ? _selectedTag
+                          : 'Select Category',
+                    ),
+                    const Icon(Icons.arrow_drop_down),
+                  ],
                 ),
               ),
-              const SizedBox(height: 10),
-              Row(
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Text('Date: ${DateFormat('yyyy-MM-dd').format(_selectedDate)}'),
+                IconButton(
+                  icon: const Icon(Icons.calendar_today),
+                  onPressed: _pickDate,
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children:
+                  ['Income', 'Expense'].map((value) {
+                    final selected = type == value;
+                    return GestureDetector(
+                      onTap:
+                          () => setState(() {
+                            type = value;
+                            if (_getTagType(_selectedTag) != type)
+                              _selectedTag = '';
+                          }),
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 8),
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 8,
+                          horizontal: 20,
+                        ),
+                        decoration: BoxDecoration(
+                          color:
+                              selected
+                                  ? (value == 'Income'
+                                      ? Colors.green
+                                      : Colors.red)
+                                  : Colors.grey.shade300,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          value,
+                          style: TextStyle(
+                            color: selected ? Colors.white : Colors.black87,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildViewContent() {
+    return Form(
+      key: _formKey,
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextFormField(
+              controller: _titleController,
+              decoration: const InputDecoration(labelText: 'Title'),
+              readOnly: true,
+              enabled: false, // disable focus and editing
+            ),
+            TextFormField(
+              controller: _amountController,
+              decoration: const InputDecoration(labelText: 'Amount'),
+              readOnly: true,
+              enabled: false,
+            ),
+            const SizedBox(height: 10),
+            InputDecorator(
+              decoration: const InputDecoration(labelText: 'Category'),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Date: ${DateFormat('yyyy-MM-dd').format(_selectedDate)}'),
-                  IconButton(
-                    icon: const Icon(Icons.calendar_today),
-                    onPressed: _pickDate,
+                  Text(
+                    _selectedTag.isNotEmpty ? _selectedTag : 'Select Category',
                   ),
+                  const Icon(Icons.category),
                 ],
               ),
-              const SizedBox(height: 10),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: ['Income', 'Expense'].map((value) {
-                  final selected = type == value;
-                  return GestureDetector(
-                    onTap: () => setState(() {
-                      type = value;
-                      final tagType = _getTagType(_selectedTag);
-                      if (tagType != type) _selectedTag = '';
-                    }),
-                    child: Container(
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Text('Date: ${DateFormat('yyyy-MM-dd').format(_selectedDate)}'),
+                const SizedBox(width: 8),
+                const Icon(Icons.calendar_today, color: Colors.grey),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children:
+                  ['Income', 'Expense'].map((value) {
+                    final selected = type == value;
+                    return Container(
                       margin: const EdgeInsets.symmetric(horizontal: 8),
-                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 20),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 8,
+                        horizontal: 20,
+                      ),
                       decoration: BoxDecoration(
-                        color: selected
-                            ? (value == 'Income' ? Colors.green : Colors.red)
-                            : Colors.grey.shade300,
+                        color:
+                            selected
+                                ? (value == 'Income'
+                                    ? Colors.green
+                                    : Colors.red)
+                                : Colors.grey.shade300,
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
@@ -192,26 +383,29 @@ class _EntryDialogState extends State<EntryDialog> {
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                    ),
-                  );
-                }).toList(),
-              ),
-            ],
-          ),
+                    );
+                  }).toList(),
+            ),
+          ],
         ),
       ),
-      actions: [
-        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
-        ElevatedButton(
-          onPressed: _submit,
-          child: Text(widget.isEditing ? 'Save' : 'Add'),
-        ),
-      ],
     );
   }
 
   String _getTagType(String tagName) {
     const incomeTags = ['Salary', 'Gift', 'Award', 'Investment'];
     return incomeTags.contains(tagName) ? 'Income' : 'Expense';
+  }
+
+  String _getDialogTitle() {
+    switch (_currentMode) {
+      case EntryDialogMode.view:
+        return 'Transaction Details';
+      case EntryDialogMode.edit:
+        return 'Edit Transaction';
+      case EntryDialogMode.add:
+      default:
+        return 'Add Transaction';
+    }
   }
 }

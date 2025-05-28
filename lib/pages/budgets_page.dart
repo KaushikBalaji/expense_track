@@ -1,8 +1,10 @@
 
 import 'package:dotted_border/dotted_border.dart';
+import 'package:expense_track/models/category_item.dart';
 import 'package:expense_track/widgets/CustomAppbar.dart';
 import 'package:expense_track/widgets/CustomSidebar.dart';
-import 'package:expense_track/widgets/category_selector_sheet.dart';
+// import 'package:expense_track/widgets/category_selector_sheet.dart';
+import '../widgets/hive_category_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:uuid/uuid.dart';
