@@ -58,10 +58,18 @@ class _DashboardPageState extends State<DashboardPage> {
         lastMillis > 0 ? DateTime.fromMillisecondsSinceEpoch(lastMillis) : null;
 
     final freq = prefs.getString('syncFrequency') ?? 'Daily';
-    final days = parseSyncFrequency(freq);
+    final intervalDays = parseSyncFrequency(freq);
     final now = DateTime.now();
-    final nextSyncIn =
-        lastSync != null ? days - now.difference(lastSync).inDays : 0;
+
+    final today = DateTime(now.year, now.month, now.day);
+    final lastDate =
+        lastSync != null
+            ? DateTime(lastSync.year, lastSync.month, lastSync.day)
+            : null;
+
+    final daysPassed =
+        lastDate != null ? today.difference(lastDate).inDays : intervalDays;
+    final nextSyncIn = lastDate != null ? intervalDays - daysPassed : 0;
 
     setState(() {
       _hasInternet = internet;

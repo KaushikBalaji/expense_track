@@ -1,4 +1,6 @@
+import 'package:expense_track/widgets/daily_entry_list.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:hive/hive.dart';
 
@@ -118,45 +120,68 @@ class _MonthlyTransactionsPageState extends State<MonthlyTransactionsPage> {
 
   void _openBottomSheetForDate(DateTime date) {
     final entries = _entriesByDate[_dateKey(date)] ?? [];
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder:
-          (ctx) => Padding(
+      builder: (ctx) {
+        final focusNode = FocusNode();
+        return KeyboardListener(
+          focusNode: focusNode,
+          autofocus: true,
+          onKeyEvent: (KeyEvent event) {
+            if (event is KeyDownEvent &&
+                HardwareKeyboard.instance.isLogicalKeyPressed(
+                  LogicalKeyboardKey.escape,
+                )) {
+              Navigator.of(ctx).maybePop();
+            }
+          },
+          child: Padding(
             padding: MediaQuery.of(ctx).viewInsets,
             child: SizedBox(
               height: MediaQuery.of(ctx).size.height * 0.6,
               child: Column(
                 children: [
-                  ListTile(
-                    title: Text(
-                      "Transactions – ${_dateLabel(date)}",
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.add),
-                      onPressed: () {
-                        Navigator.of(ctx).pop();
-                        _openAddDialog(forDate: date);
-                      },
-                    ),
-                  ),
-                  const Divider(height: 0),
+                  // ListTile(
+                  //   title: Text(
+                  //     "Transactions – ${_dateLabel(date)}",
+                  //     style: const TextStyle(fontWeight: FontWeight.bold),
+                  //   ),
+                  //   trailing: IconButton(
+                  //     icon: const Icon(Icons.add),
+                  //     onPressed: () {
+                  //       Navigator.of(ctx).pop();
+                  //       _openAddDialog(forDate: date);
+                  //     },
+                  //   ),
+                  // ),
+                  // const Divider(height: 0),
                   Expanded(
                     child:
-                        entries.isEmpty
-                            ? const Center(
-                              child: Text('No entries on this date'),
-                            )
-                            : EntryListSection(
-                              entries: entries,
-                              onDelete: _deleteEntry,
-                            ),
+                    // entries.isEmpty
+                    //     ? const Center(
+                    //       child: Text('No entries on this date'),
+                    //     )
+                    //     : DailyEntryListPanel(
+                    //       allEntries: _entries,
+                    //       initialDate: date,
+                    //       onDelete: _deleteEntry,
+                    //       onChanged: _loadEntries,
+                    //     ),
+                    DailyEntryListPanel(
+                      allEntries: _entries,
+                      initialDate: date,
+                      onDelete: _deleteEntry,
+                      onChanged: _loadEntries,
+                    ),
                   ),
                 ],
               ),
             ),
           ),
+        );
+      },
     ).whenComplete(_loadEntries);
   }
 
@@ -197,12 +222,8 @@ class _MonthlyTransactionsPageState extends State<MonthlyTransactionsPage> {
         onPressed: () => _openAddDialog(forDate: _selectedDay),
         child: const Icon(Icons.add),
       ),
-
     );
   }
-
-
-  
 
   Widget _buildCalendar() {
     return SizedBox(
@@ -225,6 +246,7 @@ class _MonthlyTransactionsPageState extends State<MonthlyTransactionsPage> {
         calendarStyle: CalendarStyle(
           isTodayHighlighted: false,
           outsideDaysVisible: false,
+          
           markersMaxCount: 0,
           cellAlignment: Alignment.center,
           cellMargin: EdgeInsets.zero, // Remove spacing between cells

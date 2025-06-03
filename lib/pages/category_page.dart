@@ -1,4 +1,5 @@
 import 'package:expense_track/models/category_item.dart';
+import 'package:expense_track/models/entry.dart'; // ✅ Added
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import '../services/supabase_services.dart';
@@ -10,11 +11,10 @@ class CategoryManagementPage extends StatefulWidget {
 }
 
 class _CategoryManagementPageState extends State<CategoryManagementPage> {
-    //static String? get userId => supabase.auth.currentUser?.id;
   late Box<CategoryItem> categoryBox;
-  String selectedType = 'Income'; // Default selected type
+  final Box<Entry> entriesBox = Hive.box<Entry>('entriesBox'); // ✅ Added
+  String selectedType = 'Income';
   final Box<List> categoryStatus = Hive.box('categoryStatus');
-
   final Set<String> protectedCategoryNames = {'Food', 'House', 'Clothing'};
 
   @override
@@ -31,9 +31,7 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
 
   void setCategoryActive(String categoryId, bool isActive) {
     final activeIds =
-        categoryStatus
-            .get('activeCategories', defaultValue: <String>[])!
-            .toSet();
+        categoryStatus.get('activeCategories', defaultValue: <String>[])!.toSet();
 
     if (isActive) {
       activeIds.add(categoryId);
@@ -45,8 +43,7 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
   }
 
   bool isCategoryActive(String categoryId) {
-    final activeIds =
-        categoryStatus.get('activeCategories', defaultValue: <String>[])!;
+    final activeIds = categoryStatus.get('activeCategories', defaultValue: <String>[])!;
     return activeIds.contains(categoryId);
   }
 
@@ -54,22 +51,41 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
     final exists = isCategorySaved(item);
 
     if (protectedCategoryNames.contains(item.name) && !newValue) {
-      // Show fun message and block removal
       await showDialog(
         context: context,
-        builder:
-            (ctx) => AlertDialog(
-              title: const Text("Basic Needs Alert!"),
-              content: Text(
-                '"${item.name}" is one of life’s essentials.\n\nYou can’t live without it — and you can’t remove it either! 😄',
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(ctx).pop(),
-                  child: const Text("OK, I need it!"),
-                ),
-              ],
+        builder: (ctx) => AlertDialog(
+          title: const Text("Basic Needs Alert!"),
+          content: Text(
+            '"${item.name}" is one of life’s essentials.\n\nYou can’t live without it — and you can’t remove it either! 😄',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text("OK, I need it!"),
             ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    // ✅ Check if category is in use before allowing disable
+    final isUsed = entriesBox.values.any((entry) => entry.tag == item.name && entry.type == item.type);
+    if (!newValue && isUsed) {
+      await showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text("Category In Use"),
+          content: const Text(
+            "This category is linked to existing transactions. Please reassign or remove those entries before disabling this category.",
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text("OK"),
+            ),
+          ],
+        ),
       );
       return;
     }
@@ -77,28 +93,27 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
     if (newValue && !exists) {
       final confirmed = await showDialog<bool>(
         context: context,
-        builder:
-            (context) => AlertDialog(
-              title: Text('Add Category'),
-              content: Text(
-                'Do you want to add "${item.name}" to your categories?',
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(false),
-                  child: const Text('Cancel'),
-                ),
-                ElevatedButton(
-                  onPressed: () => Navigator.of(context).pop(true),
-                  child: const Text('Add'),
-                ),
-              ],
+        builder: (context) => AlertDialog(
+          title: Text('Add Category'),
+          content: Text(
+            'Do you want to add "${item.name}" to your categories?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
             ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Add'),
+            ),
+          ],
+        ),
       );
 
       if (confirmed == true) {
         await categoryBox.add(item);
-        setCategoryActive(item.id, true); // ✅ Track activation
+        setCategoryActive(item.id, true);
       }
     } else if (!newValue && exists) {
       final keyToRemove = categoryBox.keys.firstWhere((k) {
@@ -107,7 +122,7 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
       }, orElse: () => null);
       if (keyToRemove != null) {
         await categoryBox.delete(keyToRemove);
-        setCategoryActive(item.id, false); // ✅ Track deactivation
+        setCategoryActive(item.id, false);
       }
     }
 
@@ -117,9 +132,7 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
   @override
   Widget build(BuildContext context) {
     final filteredCategories =
-        predefinedCategories
-            .where((item) => item.type == selectedType)
-            .toList();
+        predefinedCategories.where((item) => item.type == selectedType).toList();
 
     return Scaffold(
       appBar: AppBar(title: const Text("Manage Categories")),
@@ -135,8 +148,7 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
                   children: [
                     ElevatedButton.icon(
                       onPressed: () async {
-                        final userId =
-                            supabase.auth.currentUser?.id; // Replace with actual user ID logic
+                        final userId = supabase.auth.currentUser?.id;
                         await SupabaseService.uploadAllCategoriesStatus(userId!);
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
@@ -147,11 +159,9 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
                       icon: const Icon(Icons.cloud_upload),
                       label: const Text("Upload All"),
                     ),
-
                     ElevatedButton.icon(
                       onPressed: () async {
-                        final userId =
-                            supabase.auth.currentUser?.id; // Replace with actual user ID logic
+                        final userId = supabase.auth.currentUser?.id;
                         await SupabaseService.downloadAndSaveCategoryStatus(userId!);
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
@@ -207,8 +217,7 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
                         subtitle: Text(item.type),
                         trailing: Switch(
                           value: isSelected,
-                          onChanged:
-                              (newValue) => toggleCategory(item, newValue),
+                          onChanged: (newValue) => toggleCategory(item, newValue),
                         ),
                       );
                     },

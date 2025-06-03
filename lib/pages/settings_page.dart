@@ -113,6 +113,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     ElevatedButton(
                       onPressed: () {
                         prefs.setString('syncFrequency', selected);
+                        debugPrint('SyncFrequency set as $selected');
                         Navigator.pop(context);
                       },
                       child: const Text('Save'),
