@@ -31,15 +31,6 @@ class HiveService {
     await _entryBox.put(expense.id, expense);
   }
 
-  static Future<void> deleteExpense(Entry expense) async {
-    final key = _entryBox.keys.firstWhere(
-      (k) => _entryBox.get(k) == expense,
-      orElse: () => null,
-    );
-    if (key != null) {
-      await _entryBox.delete(key);
-    }
-  }
 
   static Future<void> clearAllExpenses() async {
     await _entryBox.clear();

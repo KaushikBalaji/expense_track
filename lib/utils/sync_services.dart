@@ -71,7 +71,7 @@ Future<void> performSync() async {
     return;
   }
 
-  await SupabaseService.uploadAllActiveCategories(userId);
+  await SupabaseService.uploadAllCategoriesStatus(userId);
   debugPrint('Categories sync done ✅');
   final entriesBox = Hive.box<Entry>('entriesBox');
   await SupabaseService.syncHiveToSupabase(entriesBox);

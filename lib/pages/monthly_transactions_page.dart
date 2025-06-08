@@ -1,6 +1,8 @@
+import 'package:expense_track/services/supabase_services.dart';
 import 'package:expense_track/widgets/daily_entry_list.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:hive/hive.dart';
 
@@ -40,18 +42,31 @@ class _MonthlyTransactionsPageState extends State<MonthlyTransactionsPage> {
   @override
   void initState() {
     super.initState();
-    _loadEntries();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadEntries();
+    });
   }
 
   /// Loads entries from Hive and builds the grouped caches.
   Future<void> _loadEntries() async {
-    final List<Entry> entries = await HiveService.getAllExpenses();
+    final box = Hive.box<Entry>('entriesBox');
+    final updatedEntries = box.values.toList();
 
-    setState(() {
-      _entries = entries;
-      _entriesByDate = _groupByDate(entries);
-      _dailyTotals = _computeDailyTotals(_entriesByDate);
-    });
+    final grouped = _groupByDate(updatedEntries);
+    final totals = _computeDailyTotals(grouped);
+
+    if (mounted) {
+      // Defer state update slightly after build is done
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          setState(() {
+            _entries = updatedEntries;
+            _entriesByDate = grouped;
+            _dailyTotals = totals;
+          });
+        }
+      });
+    }
   }
 
   //--------------------------------------------------
@@ -101,21 +116,16 @@ class _MonthlyTransactionsPageState extends State<MonthlyTransactionsPage> {
           (ctx) => EntryDialog(
             initialDate: forDate,
             mode: EntryDialogMode.add,
-            onSuccess: () {
-              setState(() {
-                _entries = Hive.box<Entry>('entriesBox').values.toList();
-                _loadEntries();
-              });
+            onSuccess: (action) {
+              if (action == EntryDialogAction.edited) {
+                setState(() {
+                  _entries = Hive.box<Entry>('entriesBox').values.toList();
+                  _loadEntries();
+                });
+              }
             },
           ),
     );
-  }
-
-  void _deleteEntry(Entry entry) async {
-    await HiveService.deleteExpense(entry);
-    setState(() {
-      _entries.remove(entry);
-    });
   }
 
   void _openBottomSheetForDate(DateTime date) {
@@ -143,36 +153,17 @@ class _MonthlyTransactionsPageState extends State<MonthlyTransactionsPage> {
               height: MediaQuery.of(ctx).size.height * 0.6,
               child: Column(
                 children: [
-                  // ListTile(
-                  //   title: Text(
-                  //     "Transactions – ${_dateLabel(date)}",
-                  //     style: const TextStyle(fontWeight: FontWeight.bold),
-                  //   ),
-                  //   trailing: IconButton(
-                  //     icon: const Icon(Icons.add),
-                  //     onPressed: () {
-                  //       Navigator.of(ctx).pop();
-                  //       _openAddDialog(forDate: date);
-                  //     },
-                  //   ),
-                  // ),
-                  // const Divider(height: 0),
                   Expanded(
-                    child:
-                    // entries.isEmpty
-                    //     ? const Center(
-                    //       child: Text('No entries on this date'),
-                    //     )
-                    //     : DailyEntryListPanel(
-                    //       allEntries: _entries,
-                    //       initialDate: date,
-                    //       onDelete: _deleteEntry,
-                    //       onChanged: _loadEntries,
-                    //     ),
-                    DailyEntryListPanel(
-                      allEntries: _entries,
+                    child: DailyEntryListPanel(
+                      // allEntries: _entries,
                       initialDate: date,
-                      onDelete: _deleteEntry,
+                      onDelete: (entry) async {
+                        SupabaseService.deleteEntry(entry);
+                        Navigator.of(
+                          ctx,
+                        ).pop(); // Close and re-open bottom sheet
+                        _openBottomSheetForDate(date); // <-- key part
+                      },
                       onChanged: _loadEntries,
                     ),
                   ),
@@ -246,7 +237,7 @@ class _MonthlyTransactionsPageState extends State<MonthlyTransactionsPage> {
         calendarStyle: CalendarStyle(
           isTodayHighlighted: false,
           outsideDaysVisible: false,
-          
+
           markersMaxCount: 0,
           cellAlignment: Alignment.center,
           cellMargin: EdgeInsets.zero, // Remove spacing between cells

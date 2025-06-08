@@ -215,6 +215,13 @@ class _SettingsPageState extends State<SettingsPage> {
                   }
                 },
               ),
+              _buildOption(
+                icon: Icons.account_balance_wallet_outlined,
+                label: 'Analytics Dashboard',
+                onTap: () {
+                  Navigator.pushNamed(context, '/dashboard');
+                },
+              ),
               const Divider(),
               _buildOption(
                 icon: Icons.person_outline,

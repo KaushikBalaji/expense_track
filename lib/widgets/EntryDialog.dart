@@ -3,17 +3,21 @@ import 'package:expense_track/services/supabase_services.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:hive/hive.dart';
+import 'package:uuid/uuid.dart';
 import '../models/entry.dart';
 // import 'category_selector_sheet.dart';
 import 'hive_category_selector.dart';
 
 enum EntryDialogMode { add, edit, view }
 
+enum EntryDialogAction { edited, deleted }
+
 class EntryDialog extends StatefulWidget {
   final Entry? initialEntry;
   final EntryDialogMode mode;
-  final VoidCallback? onSuccess;
+  final void Function(EntryDialogAction)? onSuccess;
   final DateTime? initialDate;
+  final VoidCallback? onDelete;
 
   const EntryDialog({
     super.key,
@@ -21,6 +25,7 @@ class EntryDialog extends StatefulWidget {
     this.mode = EntryDialogMode.add,
     this.onSuccess,
     this.initialDate,
+    this.onDelete,
   });
 
   @override
@@ -48,9 +53,36 @@ class _EntryDialogState extends State<EntryDialog> {
       _amountController.text = entry.amount.toString();
       _selectedDate = entry.date;
       _selectedTag = entry.tag;
-      type = _getTagType(entry.tag);
+      type = entry.type;
     } else {
       _selectedDate = widget.initialDate ?? DateTime.now();
+    }
+  }
+
+  void _confirmDelete() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder:
+          (_) => AlertDialog(
+            title: const Text("Confirm Delete"),
+            content: const Text("Delete this transaction?"),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text("Cancel"),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                child: const Text("Delete"),
+              ),
+            ],
+          ),
+    );
+    if (confirm == true && widget.initialEntry != null) {
+      await SupabaseService.deleteEntry(widget.initialEntry!);
+      widget.onSuccess?.call(EntryDialogAction.deleted);
+      if (mounted) Navigator.of(context).pop();
     }
   }
 
@@ -67,108 +99,147 @@ class _EntryDialogState extends State<EntryDialog> {
               ..amount = amount
               ..date = _selectedDate
               ..tag = _selectedTag
-              ..type = type;
+              ..type = type
+              ..lastModified = DateTime.now();
 
         await updatedEntry.save();
       } else {
         final newEntry = Entry(
+          id: const Uuid().v4(),
           title: title,
           amount: amount,
           date: _selectedDate,
           tag: _selectedTag,
           type: type,
+          lastModified: _selectedDate
         );
-        await box.add(newEntry);
+        await box.put(newEntry.id, newEntry);
       }
 
-      if (widget.onSuccess != null) widget.onSuccess!();
-      if (context.mounted) Navigator.of(context).pop();
+      if (widget.onSuccess != null) {
+        widget.onSuccess?.call(EntryDialogAction.edited);
+      }
+      if (context.mounted) Navigator.of(context).pop(true);
     }
   }
 
-  Future<void> _pickDate() async {
-    final picked = await showDatePicker(
+  Future<void> _pickDateTime() async {
+    final pickedDate = await showDatePicker(
       context: context,
       initialDate: _selectedDate,
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
     );
 
-    if (picked != null && picked != _selectedDate) {
-      setState(() => _selectedDate = picked);
-    }
+    if (pickedDate == null) return;
+
+    final pickedTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(_selectedDate),
+    );
+
+    if (pickedTime == null) return;
+
+    final combinedDateTime = DateTime(
+      pickedDate.year,
+      pickedDate.month,
+      pickedDate.day,
+      pickedTime.hour,
+      pickedTime.minute,
+    );
+
+    setState(() {
+      _selectedDate = combinedDateTime;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     final isViewMode = _currentMode == EntryDialogMode.view;
 
-    return AlertDialog(
-      title: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(_getDialogTitle()),
-          if (isViewMode) ...[
-            IconButton(
-              icon: const Icon(Icons.edit, color: Colors.blue),
-              onPressed: () {
-                setState(() {
-                  _currentMode = EntryDialogMode.edit;
-                });
-              },
-            ),
-            IconButton(
-              icon: const Icon(Icons.delete, color: Colors.red),
-              onPressed: () async {
-                final confirm = await showDialog<bool>(
-                  context: context,
-                  builder:
-                      (_) => AlertDialog(
-                        title: const Text("Confirm Delete"),
-                        content: const Text("Delete this transaction?"),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context, false),
-                            child: const Text("Cancel"),
-                          ),
-                          TextButton(
-                            onPressed: () => Navigator.pop(context, true),
-                            child: const Text("Delete"),
-                          ),
-                        ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWide = constraints.maxWidth > 600;
+        final dialogWidth = isWide ? 500.0 : double.infinity;
+
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: dialogWidth),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 24.0,
+                vertical: 20,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Title Bar
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        _getDialogTitle(),
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                );
-                if (confirm == true && widget.initialEntry != null) {
-                  await SupabaseService.deleteEntry(widget.initialEntry!);
-                  widget.onSuccess?.call();
-                  if (context.mounted) Navigator.of(context).pop();
-                }
-              },
-            ),
-          ],
-        ],
-      ),
-      content: isViewMode ? _buildViewContent() : _buildFormContent(),
-      actions:
-          isViewMode
-              ? [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Close'),
-                ),
-              ]
-              : [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Cancel'),
-                ),
-                ElevatedButton(
-                  onPressed: _submit,
-                  child: Text(
-                    _currentMode == EntryDialogMode.edit ? 'Save' : 'Add',
+                      if (isViewMode)
+                        Row(
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.edit, color: Colors.blue),
+                              tooltip: "Edit",
+                              onPressed: () {
+                                setState(
+                                  () => _currentMode = EntryDialogMode.edit,
+                                );
+                              },
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete, color: Colors.red),
+                              tooltip: "Delete",
+                              onPressed: _confirmDelete,
+                            ),
+                          ],
+                        ),
+                    ],
                   ),
-                ),
-              ],
+                  const SizedBox(height: 16),
+                  isViewMode ? _buildViewContent() : _buildFormContent(),
+                  const SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: const Text('Cancel'),
+                      ),
+                      if (!isViewMode)
+                        ElevatedButton(
+                          onPressed: _submit,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.indigo,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          child: Text(
+                            _currentMode == EntryDialogMode.edit
+                                ? 'Save'
+                                : 'Add',
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -181,16 +252,23 @@ class _EntryDialogState extends State<EntryDialog> {
           children: [
             TextFormField(
               controller: _titleController,
-              decoration: const InputDecoration(labelText: 'Title'),
+              decoration: const InputDecoration(
+                labelText: 'Title',
+                prefixIcon: Icon(Icons.title),
+              ),
               validator:
                   (value) =>
                       value == null || value.trim().isEmpty
                           ? 'Please enter a title'
                           : null,
             ),
+            const SizedBox(height: 10),
             TextFormField(
               controller: _amountController,
-              decoration: const InputDecoration(labelText: 'Amount'),
+              decoration: const InputDecoration(
+                labelText: 'Amount',
+                prefixIcon: Icon(Icons.attach_money),
+              ),
               keyboardType: TextInputType.number,
               validator: (value) {
                 final amount = double.tryParse(value ?? '');
@@ -200,53 +278,32 @@ class _EntryDialogState extends State<EntryDialog> {
                 return null;
               },
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 16),
             GestureDetector(
               onTap: () async {
                 try {
-                  final selected = await showModalBottomSheet<UICategoryItem>(
+                  final selected = await showModalBottomSheet<CategoryItem>(
                     context: context,
-                    builder: (_) {
-                      return Builder(
-                        builder: (context) {
-                          ErrorWidget.builder = (FlutterErrorDetails details) {
-                            debugPrint(
-                              'Flutter build error: ${details.exception}',
-                            );
-                            return Center(
-                              child: Text(
-                                'Oops! Something went wrong.\n${details.exception}',
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(color: Colors.red),
-                              ),
-                            );
-                          };
-                          print(
-                            'Inside Modalsheet before categorysheet line with selected tag: $_selectedTag',
-                          );
-                          return CategorySelectorSheet(
-                            selectedCategory: _selectedTag,
-                          );
-                        },
-                      );
-                    },
+                    builder:
+                        (_) => CategorySelectorSheet(
+                          selectedCategory: _selectedTag,
+                        ),
                   );
-
-                  print('Selected tag which i returned is: $_selectedTag');
-
                   if (selected != null) {
                     setState(() {
                       _selectedTag = selected.name;
                       type = selected.type;
                     });
                   }
-                } catch (e, stackTrace) {
-                  debugPrint('Caught error outside build: $e');
-                  debugPrintStack(stackTrace: stackTrace);
+                } catch (e) {
+                  debugPrint('Error: $e');
                 }
               },
               child: InputDecorator(
-                decoration: const InputDecoration(labelText: 'Category'),
+                decoration: const InputDecoration(
+                  labelText: 'Category',
+                  prefixIcon: Icon(Icons.category),
+                ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -254,34 +311,41 @@ class _EntryDialogState extends State<EntryDialog> {
                       _selectedTag.isNotEmpty
                           ? _selectedTag
                           : 'Select Category',
+                      style: const TextStyle(fontWeight: FontWeight.w500),
                     ),
                     const Icon(Icons.arrow_drop_down),
                   ],
                 ),
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 16),
             Row(
               children: [
+                const Icon(Icons.date_range, size: 20),
+                const SizedBox(width: 8),
                 Text('Date: ${DateFormat('yyyy-MM-dd').format(_selectedDate)}'),
                 IconButton(
-                  icon: const Icon(Icons.calendar_today),
-                  onPressed: _pickDate,
+                  icon: const Icon(Icons.edit_calendar),
+                  onPressed: _pickDateTime,
                 ),
               ],
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 16),
+            const Divider(),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children:
                   ['Income', 'Expense'].map((value) {
                     final selected = type == value;
+                    final color = value == 'Income' ? Colors.green : Colors.red;
                     return GestureDetector(
                       onTap:
                           () => setState(() {
                             type = value;
-                            if (_getTagType(_selectedTag) != type)
-                              _selectedTag = '';
+                            final tagType = _getTagType(_selectedTag);
+                            if (_selectedTag.isNotEmpty && tagType != type) {
+                              _selectedTag = ''; // clear invalid tag
+                            }
                           }),
                       child: Container(
                         margin: const EdgeInsets.symmetric(horizontal: 8),
@@ -290,20 +354,27 @@ class _EntryDialogState extends State<EntryDialog> {
                           horizontal: 20,
                         ),
                         decoration: BoxDecoration(
-                          color:
-                              selected
-                                  ? (value == 'Income'
-                                      ? Colors.green
-                                      : Colors.red)
-                                  : Colors.grey.shade300,
+                          color: selected ? color : Colors.grey.shade300,
                           borderRadius: BorderRadius.circular(20),
                         ),
-                        child: Text(
-                          value,
-                          style: TextStyle(
-                            color: selected ? Colors.white : Colors.black87,
-                            fontWeight: FontWeight.w600,
-                          ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              value == 'Income'
+                                  ? Icons.trending_up
+                                  : Icons.trending_down,
+                              color: selected ? Colors.white : Colors.black54,
+                              size: 18,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              value,
+                              style: TextStyle(
+                                color: selected ? Colors.white : Colors.black87,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     );
@@ -316,91 +387,107 @@ class _EntryDialogState extends State<EntryDialog> {
   }
 
   Widget _buildViewContent() {
-    return Form(
-      key: _formKey,
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        TextFormField(
+          controller: _titleController,
+          decoration: const InputDecoration(
+            labelText: 'Title',
+            prefixIcon: Icon(Icons.title),
+          ),
+          readOnly: true,
+          enabled: false,
+        ),
+        const SizedBox(height: 10),
+        TextFormField(
+          controller: _amountController,
+          decoration: const InputDecoration(
+            labelText: 'Amount',
+            prefixIcon: Icon(Icons.attach_money),
+          ),
+          readOnly: true,
+          enabled: false,
+        ),
+        const SizedBox(height: 16),
+        InputDecorator(
+          decoration: const InputDecoration(
+            labelText: 'Category',
+            prefixIcon: Icon(Icons.category),
+          ),
+          child: Text(
+            _selectedTag,
+            style: const TextStyle(fontWeight: FontWeight.w500),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Row(
           children: [
-            TextFormField(
-              controller: _titleController,
-              decoration: const InputDecoration(labelText: 'Title'),
-              readOnly: true,
-              enabled: false, // disable focus and editing
-            ),
-            TextFormField(
-              controller: _amountController,
-              decoration: const InputDecoration(labelText: 'Amount'),
-              readOnly: true,
-              enabled: false,
-            ),
-            const SizedBox(height: 10),
-            InputDecorator(
-              decoration: const InputDecoration(labelText: 'Category'),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    _selectedTag.isNotEmpty ? _selectedTag : 'Select Category',
+            const Icon(Icons.date_range, size: 20),
+            const SizedBox(width: 8),
+            Text('Date: ${DateFormat('yyyy-MM-dd').format(_selectedDate)}'),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children:
+              ['Income', 'Expense'].map((value) {
+                final selected = type == value;
+                final color = value == 'Income' ? Colors.green : Colors.red;
+                return Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 8),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 8,
+                    horizontal: 20,
                   ),
-                  const Icon(Icons.category),
-                ],
-              ),
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Text('Date: ${DateFormat('yyyy-MM-dd').format(_selectedDate)}'),
-                const SizedBox(width: 8),
-                const Icon(Icons.calendar_today, color: Colors.grey),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children:
-                  ['Income', 'Expense'].map((value) {
-                    final selected = type == value;
-                    return Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 8),
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 8,
-                        horizontal: 20,
+                  decoration: BoxDecoration(
+                    color: selected ? color : Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        value == 'Income'
+                            ? Icons.trending_up
+                            : Icons.trending_down,
+                        color: selected ? Colors.white : Colors.black54,
+                        size: 18,
                       ),
-                      decoration: BoxDecoration(
-                        color:
-                            selected
-                                ? (value == 'Income'
-                                    ? Colors.green
-                                    : Colors.red)
-                                : Colors.grey.shade300,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
+                      const SizedBox(width: 6),
+                      Text(
                         value,
                         style: TextStyle(
                           color: selected ? Colors.white : Colors.black87,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                    );
-                  }).toList(),
-            ),
-          ],
+                    ],
+                  ),
+                );
+              }).toList(),
         ),
-      ),
+      ],
     );
   }
 
   String _getTagType(String tagName) {
-    const incomeTags = ['Salary', 'Gift', 'Award', 'Investment'];
+    const incomeTags = [
+      'Salary',
+      'Gift',
+      'Award',
+      'Investment',
+      'Freelance',
+      'Rental Income',
+      'Business',
+    ];
     return incomeTags.contains(tagName) ? 'Income' : 'Expense';
   }
 
   String _getDialogTitle() {
     switch (_currentMode) {
       case EntryDialogMode.view:
-        return 'Transaction Details';
+        return 'Transaction';
       case EntryDialogMode.edit:
         return 'Edit Transaction';
       case EntryDialogMode.add:

@@ -23,6 +23,7 @@ class VscodeTheme {
       seedColor: Color(0xFF007ACC),
       brightness: Brightness.light,
     ),
+    
     useMaterial3: true,
   );
 
@@ -51,7 +52,6 @@ class VscodeTheme {
     useMaterial3: true,
   );
 }
-
 
 class SunsetTheme {
   ThemeData lightTheme = ThemeData(
@@ -114,7 +114,9 @@ class ForestTheme {
       backgroundColor: Color(0xFF2E7D32),
       foregroundColor: Colors.white,
     ),
-    drawerTheme: const DrawerThemeData(backgroundColor: Color.fromARGB(255, 197, 226, 198)),
+    drawerTheme: const DrawerThemeData(
+      backgroundColor: Color.fromARGB(255, 197, 226, 198),
+    ),
     floatingActionButtonTheme: const FloatingActionButtonThemeData(
       backgroundColor: Color(0xFF1B5E20),
     ),
@@ -139,7 +141,9 @@ class ForestTheme {
       backgroundColor: Color(0xFF004D40),
       foregroundColor: Colors.white,
     ),
-    drawerTheme: const DrawerThemeData(backgroundColor: Color.fromARGB(255, 50, 107, 53)),
+    drawerTheme: const DrawerThemeData(
+      backgroundColor: Color.fromARGB(255, 50, 107, 53),
+    ),
     floatingActionButtonTheme: const FloatingActionButtonThemeData(
       backgroundColor: Color(0xFFA5D6A7),
     ),

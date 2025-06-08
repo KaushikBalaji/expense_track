@@ -16,8 +16,6 @@ class ResponsiveSidePanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDesktop =
-        Platform.isWindows || Platform.isLinux || Platform.isMacOS;
     final height = MediaQuery.of(context).size.height;
     final width = MediaQuery.of(context).size.width;
 
@@ -75,35 +73,13 @@ class ResponsiveSidePanel extends StatelessWidget {
     final panel = Align(
       alignment: Alignment.centerRight,
       child: SizedBox(
-        height: isDesktop ? height * 0.65 : height * 0.55, // Set to 50% height
-        width: isDesktop ? 350 : width * 0.7,
+        height: height * 0.55, // Set to 50% height
+        width: width * 0.7,
         child: panelContent,
       ),
     );
 
-    return isDesktop
-        ? KeyboardListener(
-          focusNode: FocusNode()..requestFocus(),
-          onKeyEvent: (event) {
-            if (event is KeyDownEvent &&
-                event.logicalKey == LogicalKeyboardKey.escape) {
-              onClose();
-            }
-          },
-          child: Stack(
-            children: [
-              AnimatedPositioned(
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeInOut,
-                right: isVisible ? 16 : -400,
-                top: 0,
-                bottom: 0,
-                child: panel,
-              ),
-            ],
-          ),
-        )
-        : Stack(
+    return Stack(
           children: [
             if (isVisible)
               AnimatedPositioned(

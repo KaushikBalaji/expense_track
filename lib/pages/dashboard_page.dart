@@ -1,11 +1,13 @@
 import 'package:expense_track/services/supabase_services.dart';
 import 'package:expense_track/utils/sync_services.dart';
+import 'package:expense_track/widgets/auth_dialog.dart';
 import 'package:expense_track/widgets/dashboard_charts.dart';
 import 'package:expense_track/widgets/date_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:hive/hive.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 import '../models/entry.dart';
 import '../widgets/CustomAppbar.dart';
@@ -70,6 +72,7 @@ class _DashboardPageState extends State<DashboardPage> {
     final daysPassed =
         lastDate != null ? today.difference(lastDate).inDays : intervalDays;
     final nextSyncIn = lastDate != null ? intervalDays - daysPassed : 0;
+    if (!mounted) return;
 
     setState(() {
       _hasInternet = internet;
@@ -346,6 +349,24 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
+  Future<bool> ensureUserIsAuthenticated(BuildContext context) async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user != null) return true;
+
+    // Show auth dialog in AlertDialog just like your dropdown
+    await showDialog(
+      context: context,
+      builder:
+          (_) => AlertDialog(
+            contentPadding: const EdgeInsets.all(24),
+            content: AuthDialogContent(
+              onClose: () => Navigator.of(context).pop(),
+            ),
+          ),
+    );
+    return Supabase.instance.client.auth.currentUser != null;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -404,6 +425,10 @@ class _DashboardPageState extends State<DashboardPage> {
                                         onPressed:
                                             _hasInternet
                                                 ? () async {
+                                                  if (!await ensureUserIsAuthenticated(
+                                                    context,
+                                                  ))
+                                                    return;
                                                   await trySyncData(
                                                     force: true,
                                                   );

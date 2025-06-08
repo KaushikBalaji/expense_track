@@ -1,3 +1,4 @@
+import 'package:expense_track/services/supabase_services.dart';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import '../models/entry.dart';
@@ -6,7 +7,6 @@ import '../widgets/CustomAppbar.dart';
 import '../widgets/CustomSidebar.dart';
 import '../widgets/EntryDialog.dart';
 import '../widgets/entry_list.dart';
-import '../widgets/transactions_details.dart';
 
 class TransactionsPage extends StatefulWidget {
   final String title;
@@ -18,8 +18,6 @@ class TransactionsPage extends StatefulWidget {
 
 class _TransactionsPageState extends State<TransactionsPage> {
   List<Entry> _entries = [];
-  Entry? _selectedEntry;
-  bool _isPanelVisible = false;
 
   @override
   void initState() {
@@ -27,7 +25,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
     _loadEntries();
   }
 
-  void _loadEntries() async {
+  Future<void> _loadEntries() async {
     List<Entry> entries = await HiveService.getAllExpenses();
     setState(() {
       _entries = entries;
@@ -39,43 +37,44 @@ class _TransactionsPageState extends State<TransactionsPage> {
       context: context,
       builder:
           (ctx) => EntryDialog(
-            onSuccess: () {
-              setState(() {
-                _entries = Hive.box<Entry>('entriesBox').values.toList();
-              });
+            initialDate: DateTime.now(),
+            mode: EntryDialogMode.add,
+            onSuccess: (action) {
+              if (action == EntryDialogAction.edited) {
+                setState(() {
+                  _entries = Hive.box<Entry>('entriesBox').values.toList();
+                  _loadEntries();
+                });
+              }
             },
           ),
     );
   }
 
-
   void _deleteEntry(Entry entry) async {
-    await HiveService.deleteExpense(entry);
-    setState(() {
-      _entries.remove(entry);
-    });
+    await SupabaseService.deleteEntry(entry);
+    await _loadEntries();
   }
 
   void _openTransactionDetails(Entry entry) {
-    setState(() {
-      _selectedEntry = entry;
-      _isPanelVisible = true;
-    });
-  }
-
-  void _closeTransactionDetails() {
-    setState(() {
-      //_selectedEntry = null;
-      _isPanelVisible = false;
-    });
-
-    Future.delayed(const Duration(milliseconds: 300), () {
-      if (mounted) {
-        setState(() {
-          _selectedEntry = null;
-        });
-      }
-    });
+    showDialog(
+      context: context,
+      builder:
+          (ctx) => EntryDialog(
+            initialEntry: entry,
+            initialDate: entry.date,
+            mode: EntryDialogMode.view,
+            onSuccess: (action) {
+              if (action == EntryDialogAction.deleted ||
+                  action == EntryDialogAction.edited) {
+                setState(() {
+                  _entries = Hive.box<Entry>('entriesBox').values.toList();
+                  _loadEntries();
+                });
+              }
+            },
+          ),
+    );
   }
 
   @override
@@ -97,44 +96,16 @@ class _TransactionsPageState extends State<TransactionsPage> {
                         Scaffold.of(scaffoldContext).openDrawer();
                       },
                     ),
-                    actions: [
-                      IconButton(
-                        icon: const Icon(Icons.settings),
-                        onPressed: () {
-                          // Add settings logic
-                        },
-                      ),
-                    ],
                   ),
+
                   Expanded(
-                    child:
-                        _entries.isEmpty
-                            ? const Center(child: Text('No entries yet.'))
-                            : EntryListSection(
-                              entries: _entries,
-                              onDelete: _deleteEntry,
-                              onTap: _openTransactionDetails,
-                            ),
+                    child: EntryListSection(
+                      entries: _entries,
+                      onDelete: _deleteEntry,
+                      onTap: _openTransactionDetails,
+                    ),
                   ),
                 ],
-              ),
-
-              AnimatedPositioned(
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeInOut,
-                right: _isPanelVisible ? 0 : -400,
-                top: 0,
-                bottom: 0,
-                child: SizedBox(
-                  width: 400,
-                  child:
-                      _selectedEntry != null
-                          ? TransactionDetailsPanel(
-                            entry: _selectedEntry!,
-                            onClose: _closeTransactionDetails,
-                          )
-                          : const SizedBox.shrink(), // Keep widget in tree
-                ),
               ),
             ],
           );

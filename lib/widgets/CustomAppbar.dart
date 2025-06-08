@@ -52,6 +52,7 @@ class _CustomAppBarState extends State<CustomAppBar> {
           onPressed: () => MyApp.of(context)?.toggleTheme(),
         ),
         ...?widget.actions,
+        SizedBox(width: 10,)
       ],
     );
   }

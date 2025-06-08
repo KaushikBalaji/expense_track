@@ -1,3 +1,4 @@
+import 'package:expense_track/services/supabase_services.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -99,6 +100,7 @@ class _UserPageState extends State<UserPage> {
   @override
   Widget build(BuildContext context) {
     final user = Supabase.instance.client.auth.currentUser;
+    final service = SupabaseService();
 
     if (user == null) {
       return Scaffold(
@@ -129,11 +131,12 @@ class _UserPageState extends State<UserPage> {
                   icon: const Icon(Icons.logout),
                   label: const Text('Logout'),
                   onPressed: () async {
-                    await Supabase.instance.client.auth.signOut();
-                    if (context.mounted){
-                        SnackBar(content: Text('User Logged out. Returning to Dashboard ...'));
-                        Navigator.pushNamed(context, '/dashboard');
-                    } 
+                    await service.handleLogout(context);
+                    // await Supabase.instance.client.auth.signOut();
+                    // if (context.mounted){
+                    //     SnackBar(content: Text('User Logged out. Returning to Dashboard ...'));
+                    //     Navigator.pushNamed(context, '/dashboard');
+                    // } 
                   },
                 ),
                 ElevatedButton.icon(

@@ -23,13 +23,14 @@ class EntryAdapter extends TypeAdapter<Entry> {
       tag: fields[3] as String,
       date: fields[4] as DateTime,
       type: fields[5] as String,
+      lastModified: fields[6] as DateTime?,
     );
   }
 
   @override
   void write(BinaryWriter writer, Entry obj) {
     writer
-      ..writeByte(6)
+      ..writeByte(7)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -41,7 +42,9 @@ class EntryAdapter extends TypeAdapter<Entry> {
       ..writeByte(4)
       ..write(obj.date)
       ..writeByte(5)
-      ..write(obj.type);
+      ..write(obj.type)
+      ..writeByte(6)
+      ..write(obj.lastModified);
   }
 
   @override

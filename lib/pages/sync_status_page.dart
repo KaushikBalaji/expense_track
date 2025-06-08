@@ -235,6 +235,7 @@ class _SyncStatusPageState extends State<SyncStatusPage> {
                                 setState(() => loading = true);
                                 final box = Hive.box<Entry>('entriesBox');
                                 await SupabaseService.syncSupabaseToHive(box);
+                                SupabaseService.printAllHiveEntries();
                                 lastSynced = DateTime.now();
                                 await fetchCounts();
                               },
@@ -281,70 +282,78 @@ class _SyncStatusPageState extends State<SyncStatusPage> {
                               ),
                             ),
                           ]),
-                          buildActionCard('Excel Operations', [
+                          buildActionCard('JSON Operations', [
                             ElevatedButton.icon(
                               onPressed: () async {
-                                await ExcelOperationsSyncfusion.exportToExcel();
+                                // Replace with actual user ID if needed
+                                const userId = 'local_user';
+                                await ExcelOperationsSyncfusion.exportToJson(
+                                  userId: userId,
+                                );
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'JSON export completed successfully.',
+                                    ),
+                                  ),
+                                );
                               },
                               icon: const Icon(Icons.download),
-                              label: const Text('Export to Excel'),
+                              label: const Text('Export to JSON'),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.blueAccent,
+                                backgroundColor: Colors.green,
                               ),
                             ),
                             ElevatedButton.icon(
                               onPressed: () async {
                                 bool shouldDelete =
                                     await _showConfirmationDialog(context);
-                                if (shouldDelete) {
-                                  final box = await Hive.openBox<Entry>(
-                                    'entriesBox',
-                                  );
-                                  await box.clear();
-                                  FilePickerResult? result = await FilePicker
-                                      .platform
-                                      .pickFiles(
-                                        type: FileType.custom,
-                                        allowedExtensions: ['xlsx'],
-                                      );
-                                  if (result != null &&
-                                      result.files.single.path != null) {
-                                    File excelFile = File(
-                                      result.files.single.path!,
+                                if (!shouldDelete) return;
+
+                                final box = await Hive.openBox<Entry>(
+                                  'entriesbox',
+                                );
+                                await box.clear();
+
+                                FilePickerResult? result = await FilePicker
+                                    .platform
+                                    .pickFiles(
+                                      type: FileType.custom,
+                                      allowedExtensions: ['json'],
                                     );
-                                    try {
-                                      await ExcelOperationsSyncfusion.importFromExcel(
-                                        excelFile,
-                                      );
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
-                                            'Excel import completed successfully.',
-                                          ),
+
+                                if (result != null &&
+                                    result.files.single.path != null) {
+                                  File jsonFile = File(
+                                    result.files.single.path!,
+                                  );
+                                  try {
+                                    await ExcelOperationsSyncfusion.importFromJson(
+                                      jsonFile,
+                                    );
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'JSON import completed successfully.',
                                         ),
-                                      );
-                                      Navigator.pushNamed(
-                                        context,
-                                        '/syncstatus',
-                                      );
-                                    } catch (e) {
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        SnackBar(
-                                          content: Text('Failed to import: $e'),
+                                      ),
+                                    );
+                                    Navigator.pushNamed(context, '/syncstatus');
+                                  } catch (e) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          'Failed to import JSON: $e',
                                         ),
-                                      );
-                                    }
+                                      ),
+                                    );
                                   }
                                 }
                               },
-                              icon: const Icon(Icons.cloud_download),
-                              label: const Text('Import from Excel'),
+                              icon: const Icon(Icons.cloud_upload),
+                              label: const Text('Import from JSON'),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.orangeAccent,
+                                backgroundColor: Colors.purple,
                               ),
                             ),
                           ]),

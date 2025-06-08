@@ -23,6 +23,9 @@ class Entry extends HiveObject {
   @HiveField(5)
   String type;
 
+  @HiveField(6)
+  late DateTime lastModified;
+
   Entry({
     String? id,
     required this.title,
@@ -30,7 +33,9 @@ class Entry extends HiveObject {
     required this.tag,
     required this.date,
     required this.type,
-  }) : id = id ?? const Uuid().v4() {
+    DateTime? lastModified,
+  }) : id = id ?? const Uuid().v4(),
+       lastModified = lastModified ?? DateTime.now() {
     print('Entry created: $title, $amount, $tag, $date, $type, id: $id');
   }
 
@@ -49,11 +54,17 @@ class Entry extends HiveObject {
   factory Entry.fromMap(Map<String, dynamic> map) {
     return Entry(
       id: map['id'].toString(),
-      title: map['note'], // or map['title'], if that's the actual column name
+      title:
+          map['note'] ??
+          map['title'] ??
+          '', // or map['title'], if that's the actual column name
       amount: (map['amount'] as num).toDouble(),
       tag: map['tag'],
       date: DateTime.parse(map['date']),
       type: map['type'],
+      lastModified: map['last_modified'] != null
+        ? DateTime.parse(map['last_modified'])
+        : DateTime.now(),
     );
   }
 }

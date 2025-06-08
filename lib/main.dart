@@ -43,9 +43,7 @@ void main() async {
     Hive.registerAdapter(CategoryItemAdapter());
   }
 
-  //await Hive.deleteBoxFromDisk('categories');
-
-
+  // await Hive.deleteBoxFromDisk('categories');
 
   print('Opening expensesBox...');
   await HiveService.initialize();
@@ -54,10 +52,33 @@ void main() async {
   await Hive.openBox<Budget>('budgetsBox');
   await Hive.openBox<List>('categoryStatus');
   await Hive.openBox<CategoryItem>('categories');
+//   migrateActiveStatusIntoCategoryItems();
+
   await Hive.openBox<List>('deletedEntries');
   await Hive.openBox<Entry>('entriesBox');
 
+//   debugPrint('Hive Categories: ');
+
   runApp(const MyApp());
+}
+
+Future<void> migrateActiveStatusIntoCategoryItems() async {
+  final categoryBox = Hive.box<CategoryItem>('categories');
+  final statusBox = Hive.box<List>('categoryStatus');
+
+  final raw = statusBox.get('activeCategories');
+  final activeIds = (raw is List<String>) ? raw : <String>[];
+
+  for (final item in categoryBox.values) {
+    final shouldBeActive = activeIds.contains(item.id);
+    if (item.isActive != shouldBeActive) {
+      item.isActive = shouldBeActive;
+      await item.save(); // 🔥 Persist the update
+    }
+  }
+
+  await statusBox.delete('activeCategories');
+  print("✅ Migrated active status into CategoryItem");
 }
 
 class MyApp extends StatefulWidget {
@@ -151,7 +172,10 @@ class _MyAppState extends State<MyApp> {
       debugShowCheckedModeBanner: false,
       title: 'Expense Tracker',
       theme: currentThemeData,
-      home: DashboardPage(), // your main app screen
+      home: SettingsPage(
+              currentTheme: selectedThemeName,
+              onThemeChanged: (newTheme) => handleThemeChange(newTheme),
+            ), // your main app screen
     );
   }
 }

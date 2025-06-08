@@ -23,13 +23,14 @@ class CategoryItemAdapter extends TypeAdapter<CategoryItem> {
       iconCodePoint: fields[3] as int,
       fontFamily: fields[4] as String?,
       fontPackage: fields[5] as String?,
+      isActive: fields[6] as bool?,
     );
   }
 
   @override
   void write(BinaryWriter writer, CategoryItem obj) {
     writer
-      ..writeByte(6)
+      ..writeByte(7)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -41,7 +42,9 @@ class CategoryItemAdapter extends TypeAdapter<CategoryItem> {
       ..writeByte(4)
       ..write(obj.fontFamily)
       ..writeByte(5)
-      ..write(obj.fontPackage);
+      ..write(obj.fontPackage)
+      ..writeByte(6)
+      ..write(obj.isActive);
   }
 
   @override

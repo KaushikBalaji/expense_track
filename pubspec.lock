@@ -146,18 +146,18 @@ packages:
     dependency: transitive
     description:
       name: built_value
-      sha256: ea90e81dc4a25a043d9bee692d20ed6d1c4a1662a28c03a96417446c093ed6b4
+      sha256: "082001b5c3dc495d4a42f1d5789990505df20d8547d42507c29050af6933ee27"
       url: "https://pub.dev"
     source: hosted
-    version: "8.9.5"
+    version: "8.10.1"
   calendar_date_picker2:
     dependency: "direct main"
     description:
       name: calendar_date_picker2
-      sha256: "293020a283210ccefff669499178c127acbb5e77ae13864f992c8a3e68a8aca1"
+      sha256: "9c9b5586fb512bf1181d7f3a6273bffa9e65a4e16689902e112771e7d71d063b"
       url: "https://pub.dev"
     source: hosted
-    version: "2.0.0"
+    version: "2.0.1"
   characters:
     dependency: transitive
     description:
@@ -1019,34 +1019,34 @@ packages:
     dependency: "direct main"
     description:
       name: syncfusion_flutter_charts
-      sha256: fcc55153260c2845f270018d7eceb990a02dd9b3f9377d825ae4fdce9a900b8c
+      sha256: "62c085db25866e12c4439169376efbb4d86a25c43292d667daf6af093aa17a36"
       url: "https://pub.dev"
     source: hosted
-    version: "29.2.4"
+    version: "29.2.8"
   syncfusion_flutter_core:
     dependency: transitive
     description:
       name: syncfusion_flutter_core
-      sha256: "32649080c81f8699386988e27ea37b51f9c468f1e3a78a26f0540b665c762327"
+      sha256: "73904e5db0c4181b179c4d3b28ed40e6c2898ad4d081f2c999a5b8a8f8475e3f"
       url: "https://pub.dev"
     source: hosted
-    version: "29.2.4"
+    version: "29.2.8"
   syncfusion_flutter_xlsio:
     dependency: "direct main"
     description:
       name: syncfusion_flutter_xlsio
-      sha256: a21adc77a7e2612387d29c8ea37b539559f35abfd116205947658f3f6ccee9e7
+      sha256: "5b2aab7d4340bbe7fab22b5ff8bbbd73d0451122ba3f25041208f7ae6b5eae7f"
       url: "https://pub.dev"
     source: hosted
-    version: "29.2.4"
+    version: "29.2.8"
   syncfusion_officecore:
     dependency: transitive
     description:
       name: syncfusion_officecore
-      sha256: "1d42036287c3c3d2d37056091a966d34b26cec72794d3de91cff054a2f6712f5"
+      sha256: "9d9a340b5f386efd0a2a926016c480ee2700f85516c5e60f6d1a7788ce928d11"
       url: "https://pub.dev"
     source: hosted
-    version: "29.2.4"
+    version: "29.2.8"
   table_calendar:
     dependency: "direct main"
     description:

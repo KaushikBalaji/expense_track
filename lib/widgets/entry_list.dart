@@ -2,22 +2,18 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/entry.dart';
-import 'ShowEntryCard.dart';
-import 'transactions_details.dart';
-import 'EntryDialog.dart'; // Make sure this is imported
+import 'EntryDialog.dart';
 
 class EntryListSection extends StatefulWidget {
   final List<Entry> entries;
   final Function(Entry) onDelete;
   final Function(Entry)? onTap;
-  final Animation<Offset>? slideAnimation;
 
   const EntryListSection({
     super.key,
     required this.entries,
     required this.onDelete,
     this.onTap,
-    this.slideAnimation,
   });
 
   @override
@@ -26,7 +22,6 @@ class EntryListSection extends StatefulWidget {
 
 class _EntryListSectionState extends State<EntryListSection> {
   DateTime _selectedMonth = DateTime.now();
-  Entry? _selectedEntry;
 
   bool get isMobile =>
       defaultTargetPlatform == TargetPlatform.android ||
@@ -58,11 +53,9 @@ class _EntryListSectionState extends State<EntryListSection> {
         return StatefulBuilder(
           builder: (context, setModalState) {
             return SingleChildScrollView(
-              // Add this wrapper
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
-                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -162,140 +155,221 @@ class _EntryListSectionState extends State<EntryListSection> {
     return grouped;
   }
 
-  void _handleEntryTap(Entry entry, {bool forceDialog = false}) {
-  if (!isMobile && !forceDialog) {
-    setState(() {
-      _selectedEntry = entry;
-    });
-  } else {
+  void _handleEntryTap(Entry entry) {
     showDialog(
       context: context,
-      useRootNavigator: true,
-      builder: (_) => EntryDialog(
-        initialEntry: entry,
-        mode: EntryDialogMode.view,
-        onSuccess: () {
-          setState(() {}); // refresh if needed
-        },
+      builder:
+          (_) => EntryDialog(
+            initialEntry: entry,
+            mode: EntryDialogMode.view,
+            onSuccess: (action) {
+              if (action == EntryDialogAction.deleted) {
+                widget.onDelete(entry); // Notify TransactionsPage
+              } else if (action == EntryDialogAction.edited) {
+                setState(() {}); // Just refresh locally if needed
+              }
+            },
+          ),
+    );
+  }
+
+  Widget _buildOverviewSection(List<Entry> entries) {
+    double income = entries
+        .where((e) => e.type == 'Income')
+        .fold(0.0, (sum, e) => sum + e.amount);
+    double expense = entries
+        .where((e) => e.type == 'Expense')
+        .fold(0.0, (sum, e) => sum + e.amount);
+    double total = income - expense;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          _amountCard('Income', income, Colors.blue),
+          _amountCard('Expense', expense, Colors.red),
+          _amountCard('Total', total, Colors.black),
+        ],
       ),
     );
   }
-}
 
+  Widget _amountCard(String label, double amount, Color color) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
+        Text(
+          '${label == "Expense" ? "-" : ""}₹${amount.toStringAsFixed(0)}',
+          style: TextStyle(
+            color: color,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEntryCard(Entry entry) {
+    final isIncome = entry.type == 'Income';
+    final amountColor = isIncome ? Colors.green : Colors.red;
+
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 12,
+        ),
+        leading: CircleAvatar(
+          radius: 22,
+          backgroundColor: Colors.grey.shade100,
+          child: Icon(Icons.category, color: Colors.grey.shade800),
+        ),
+        title: Text(
+          entry.title,
+          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (entry.title.isNotEmpty)
+              Text(
+                entry.title,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontStyle: FontStyle.italic,
+                  color: Colors.grey,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+          ],
+        ),
+        trailing: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(
+              '${isIncome ? '' : '-'}₹${entry.amount.toStringAsFixed(0)}',
+              style: TextStyle(
+                color: amountColor,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              DateFormat.jm().format(entry.date),
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+          ],
+        ),
+        onTap: () => _handleEntryTap(entry),
+      ),
+    );
+  }
+
+  Widget _buildMonthNavigationBar() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.primaryContainer,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: const [BoxShadow(blurRadius: 4, color: Colors.black12)],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.chevron_left),
+              onPressed: () => _changeMonth(-1),
+            ),
+            GestureDetector(
+              onTap: _selectMonthFromPicker,
+              child: Text(
+                '${_monthName(_selectedMonth.month)} ${_selectedMonth.year}',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.onPrimaryContainer,
+                ),
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.chevron_right),
+              onPressed: () => _changeMonth(1),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final selectedEntries =
         widget.entries
             .where(
-              (entry) =>
-                  entry.date.year == _selectedMonth.year &&
-                  entry.date.month == _selectedMonth.month,
+              (e) =>
+                  e.date.year == _selectedMonth.year &&
+                  e.date.month == _selectedMonth.month,
             )
             .toList();
 
     final groupedByDay = _groupEntriesByDay(selectedEntries);
     final sortedDays =
-        groupedByDay.keys.toList()
-          ..sort((a, b) => b.compareTo(a)); // Newest first
-
-    final entryList = ListView.builder(
-      padding: const EdgeInsets.only(bottom: 80),
-      itemCount: sortedDays.length,
-      itemBuilder: (context, index) {
-        final day = sortedDays[index];
-        final entries = groupedByDay[day]!;
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 16.0,
-                vertical: 8.0,
-              ),
-              child: Text(
-                _formattedDay(day),
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            ...entries.map(
-              (entry) => EntryCard(
-                entry: entry,
-                // onDelete: () {
-                //   setState(() {
-                //     entry.delete();
-                //   });
-                // },
-                onTap: () => _handleEntryTap(entry, forceDialog: true),
-              ),
-            ),
-          ],
-        );
-      },
-    );
+        groupedByDay.keys.toList()..sort((a, b) => b.compareTo(a));
 
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const SizedBox(width: 10),
-              IconButton(
-                icon: const Icon(Icons.arrow_left),
-                onPressed: () => _changeMonth(-1),
-              ),
-              GestureDetector(
-                onTap: _selectMonthFromPicker,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  child: Text(
-                    '${_monthName(_selectedMonth.month)} ${_selectedMonth.year}',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              IconButton(
-                icon: const Icon(Icons.arrow_right),
-                onPressed: () => _changeMonth(1),
-              ),
-            ],
-          ),
-        ),
+        const SizedBox(height: 10),
+        _buildOverviewSection(selectedEntries),
+        _buildMonthNavigationBar(),
         Expanded(
-          child: Row(
-            children: [
-              Expanded(flex: 2, child: entryList),
-              if (!isMobile && _selectedEntry != null)
-                Container(
-                  width: 350,
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).cardColor,
-                    border: Border(
-                      left: BorderSide(
-                        color: Colors.grey.withOpacity(0.2),
-                        width: 1,
-                      ),
+          child:
+              sortedDays.isEmpty
+                  ? const Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.inbox, size: 64, color: Colors.grey),
+                        SizedBox(height: 12),
+                        Text(
+                          'No entries this month',
+                          style: TextStyle(fontSize: 16, color: Colors.grey),
+                        ),
+                      ],
                     ),
+                  )
+                  : ListView.builder(
+                    padding: const EdgeInsets.only(bottom: 80),
+                    itemCount: sortedDays.length,
+                    itemBuilder: (context, index) {
+                      final day = sortedDays[index];
+                      final entries = groupedByDay[day]!;
+
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
+                            child: Text(
+                              _formattedDay(day),
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          ...entries.map(_buildEntryCard),
+                        ],
+                      );
+                    },
                   ),
-                  child: TransactionDetailsPanel(
-                    entry: _selectedEntry!,
-                    onClose: () => setState(() => _selectedEntry = null),
-                  ),
-                ),
-            ],
-          ),
         ),
       ],
     );

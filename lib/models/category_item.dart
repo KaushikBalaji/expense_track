@@ -24,6 +24,9 @@ class CategoryItem extends HiveObject {
   @HiveField(5)
   String? fontPackage;
 
+  @HiveField(6)
+  bool? isActive;
+
   CategoryItem({
     required this.id,
     required this.name,
@@ -31,8 +34,11 @@ class CategoryItem extends HiveObject {
     required this.iconCodePoint,
     this.fontFamily,
     this.fontPackage,
+    this.isActive = false,
     
   });
 
   IconData get icon => IconData(iconCodePoint, fontFamily: fontFamily, fontPackage: fontPackage);
+  // bool isCategoryActive(CategoryItem item) => item.isActive ?? true;
+
 }

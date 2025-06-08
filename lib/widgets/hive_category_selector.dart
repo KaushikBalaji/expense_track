@@ -2,18 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:expense_track/models/category_item.dart'; // Hive model
 
-class UICategoryItem {
-  final String name;
-  final String type; // 'Income' or 'Expense'
-  final IconData icon;
-
-  UICategoryItem({required this.name, required this.type, required this.icon});
-
-  @override
-  String toString() {
-    return 'UICategoryItem(name: $name, type: $type, icon: $icon)';
-  }
-}
 
 class CategorySelectorSheet extends StatefulWidget {
   final String selectedCategory;
@@ -31,8 +19,8 @@ class CategorySelectorSheet extends StatefulWidget {
 
 class _CategorySelectorSheetState extends State<CategorySelectorSheet> {
   String? selected;
-  List<UICategoryItem> incomeCategories = [];
-  List<UICategoryItem> expenseCategories = [];
+  List<CategoryItem> incomeCategories = [];
+  List<CategoryItem> expenseCategories = [];
 
   @override
   void initState() {
@@ -64,38 +52,10 @@ class _CategorySelectorSheetState extends State<CategorySelectorSheet> {
     try {
       setState(() {
         incomeCategories =
-            allCategories
-                .where((c) => c.type == 'Income' && c.fontFamily != null)
-                .map((c) {
-                  debugPrint('>>> Mapping INCOME item: ${c.name}');
-                  return UICategoryItem(
-                    name: c.name,
-                    type: c.type,
-                    icon: IconData(
-                      c.iconCodePoint,
-                      fontFamily: c.fontFamily,
-                      fontPackage: c.fontPackage,
-                    ),
-                  );
-                })
-                .toList();
+            allCategories.where((c) => c.type == 'Income').toList();
 
         expenseCategories =
-            allCategories
-                .where((c) => c.type == 'Expense' && c.fontFamily != null)
-                .map((c) {
-                  debugPrint('>>> Mapping EXPENSE item: ${c.name}');
-                  return UICategoryItem(
-                    name: c.name,
-                    type: c.type,
-                    icon: IconData(
-                      c.iconCodePoint,
-                      fontFamily: c.fontFamily,
-                      fontPackage: c.fontPackage,
-                    ),
-                  );
-                })
-                .toList();
+            allCategories.where((c) => c.type == 'Expense').toList();
       });
 
       debugPrint('>>> Final incomeCategories: $incomeCategories');
@@ -147,7 +107,7 @@ class _CategorySelectorSheetState extends State<CategorySelectorSheet> {
 
   Widget _buildRadioGrid(
     BuildContext context,
-    List<UICategoryItem> categories,
+    List<CategoryItem> categories,
   ) {
     debugPrint('>>> _buildRadioGrid with ${categories.length} items');
 
