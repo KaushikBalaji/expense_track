@@ -53,7 +53,7 @@ class _SyncStatusPageState extends State<SyncStatusPage> {
         cloudCount = 0;
       }
     } catch (e) {
-      print('Error fetching counts: $e');
+      debugPrint('Error fetching counts: $e');
     } finally {
       if (!mounted) return;
       setState(() => loading = false);

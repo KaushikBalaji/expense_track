@@ -3,7 +3,6 @@ import 'package:dotted_border/dotted_border.dart';
 import 'package:expense_track/models/category_item.dart';
 import 'package:expense_track/widgets/CustomAppbar.dart';
 import 'package:expense_track/widgets/CustomSidebar.dart';
-// import 'package:expense_track/widgets/category_selector_sheet.dart';
 import '../widgets/hive_category_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -122,11 +121,11 @@ class _BudgetsPageState extends State<BudgetsPage> {
                           note: null,
                           createdAt: now,
                         );
-                        print(
+                        debugPrint(
                           'Budget created: ${newBudget.id}    ${newBudget.userId}    ${newBudget.amount}    ${newBudget.category}    ${newBudget.month}    ${newBudget.createdAt}    ',
                         );
                         _budgetBox.add(newBudget);
-                        print(
+                        debugPrint(
                           'Budget Added: ${newBudget.id}    ${newBudget.userId}    ${newBudget.amount}    ${newBudget.category}    ${newBudget.month}    ${newBudget.createdAt}    ',
                         );
                         setState(() {}); // Refresh UI
@@ -134,7 +133,7 @@ class _BudgetsPageState extends State<BudgetsPage> {
                         Navigator.pop(context);
                       }
                     } catch (e) {
-                      print('Exception: $e');
+                      debugPrint('Exception: $e');
                     }
                   },
                   child: const Text('Add'),
@@ -166,10 +165,10 @@ class _BudgetsPageState extends State<BudgetsPage> {
       (sum, tx) => sum + tx.amount.abs(),
     );
 
-    print('Spent: $spent');
+    debugPrint('Spent: $spent');
     (budget.amount - spent).clamp(0, budget.amount);
     final usagePercent = (spent / budget.amount).clamp(0, 1).toDouble();
-    print('Remaining: $usagePercent');
+    debugPrint('Remaining: $usagePercent');
 
     final isOverBudget = spent > budget.amount;
 

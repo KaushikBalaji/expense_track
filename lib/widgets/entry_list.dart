@@ -1,3 +1,4 @@
+import 'package:expense_track/widgets/ShowEntryCard.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -212,66 +213,6 @@ class _EntryListSectionState extends State<EntryListSection> {
     );
   }
 
-  Widget _buildEntryCard(Entry entry) {
-    final isIncome = entry.type == 'Income';
-    final amountColor = isIncome ? Colors.green : Colors.red;
-
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 12,
-        ),
-        leading: CircleAvatar(
-          radius: 22,
-          backgroundColor: Colors.grey.shade100,
-          child: Icon(Icons.category, color: Colors.grey.shade800),
-        ),
-        title: Text(
-          entry.title,
-          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (entry.title.isNotEmpty)
-              Text(
-                entry.title,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontStyle: FontStyle.italic,
-                  color: Colors.grey,
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
-          ],
-        ),
-        trailing: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(
-              '${isIncome ? '' : '-'}₹${entry.amount.toStringAsFixed(0)}',
-              style: TextStyle(
-                color: amountColor,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              DateFormat.jm().format(entry.date),
-              style: const TextStyle(fontSize: 12, color: Colors.grey),
-            ),
-          ],
-        ),
-        onTap: () => _handleEntryTap(entry),
-      ),
-    );
-  }
 
   Widget _buildMonthNavigationBar() {
     return Padding(
@@ -365,7 +306,12 @@ class _EntryListSectionState extends State<EntryListSection> {
                                   ?.copyWith(fontWeight: FontWeight.bold),
                             ),
                           ),
-                          ...entries.map(_buildEntryCard),
+                          ...entries.map(
+                            (entry) => EntryCard(
+                              entry: entry,
+                              onTap: () => _handleEntryTap(entry),
+                            ),
+                          ),
                         ],
                       );
                     },

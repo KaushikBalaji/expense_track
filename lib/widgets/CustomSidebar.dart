@@ -28,7 +28,7 @@ class _CustomSidebarState extends State<CustomSidebar> {
       setState(() {
         _hasInternet = hasConnection;
       });
-      print('Network status: $hasConnection');
+      debugPrint('Network status: $hasConnection');
     }
   }
 
@@ -214,7 +214,7 @@ class _CustomSidebarState extends State<CustomSidebar> {
           SidebarItem(
             icon: Icons.label,
             label: "Tags",
-            onTap: () => print("Tags tapped"),
+            onTap: () => debugPrint("Tags tapped"),
           ),
           SidebarItem(
             icon: Icons.settings,

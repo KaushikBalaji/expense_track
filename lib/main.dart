@@ -6,7 +6,6 @@ import 'package:expense_track/pages/monthly_transactions_page.dart';
 import 'package:expense_track/pages/sync_status_page.dart';
 import 'package:expense_track/pages/transactions_page.dart';
 import 'package:expense_track/pages/user_page.dart';
-import 'package:expense_track/services/hive_service.dart';
 import 'package:flutter/material.dart';
 import 'custom_theme.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -27,11 +26,11 @@ void main() async {
         'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFqam9veWxzanRyZHZtbm52bmh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDcyMzcyMDQsImV4cCI6MjA2MjgxMzIwNH0.npHvRdDTqudBWJiLpFVjPTsdy3pZ_z7yDpHqmdBe0FM',
   );
 
-  print('Initializing Hive...');
+  debugPrint('Initializing Hive...');
   await Hive.initFlutter();
   //await Hive.deleteBoxFromDisk('entriesBox');
 
-  print('Registering Entry Adapter...');
+  debugPrint('Registering Entry Adapter...');
   Hive.registerAdapter(EntryAdapter()); // Register the Entry adapter
 
   if (!Hive.isAdapterRegistered(3)) {
@@ -45,40 +44,23 @@ void main() async {
 
   // await Hive.deleteBoxFromDisk('categories');
 
-  print('Opening expensesBox...');
-  await HiveService.initialize();
-  // Initialize the HiveService to open the box
-
-  await Hive.openBox<Budget>('budgetsBox');
-  await Hive.openBox<List>('categoryStatus');
-  await Hive.openBox<CategoryItem>('categories');
-//   migrateActiveStatusIntoCategoryItems();
-
-  await Hive.openBox<List>('deletedEntries');
-  await Hive.openBox<Entry>('entriesBox');
-
-//   debugPrint('Hive Categories: ');
+  debugPrint('Opening expensesBox...');
+  await initialize();
 
   runApp(const MyApp());
 }
 
-Future<void> migrateActiveStatusIntoCategoryItems() async {
-  final categoryBox = Hive.box<CategoryItem>('categories');
-  final statusBox = Hive.box<List>('categoryStatus');
+Future<void> initialize() async {
+  try {
+    await Hive.openBox<Budget>('budgetsBox');
+    await Hive.openBox<List>('deletedEntries');
+    await Hive.openBox<Entry>('entriesBox');
+    await Hive.openBox<CategoryItem>('categories');
 
-  final raw = statusBox.get('activeCategories');
-  final activeIds = (raw is List<String>) ? raw : <String>[];
-
-  for (final item in categoryBox.values) {
-    final shouldBeActive = activeIds.contains(item.id);
-    if (item.isActive != shouldBeActive) {
-      item.isActive = shouldBeActive;
-      await item.save(); // 🔥 Persist the update
-    }
+    debugPrint('Hivebox open');
+  } catch (e) {
+    debugPrint('Error opening Hive box: $e');
   }
-
-  await statusBox.delete('activeCategories');
-  print("✅ Migrated active status into CategoryItem");
 }
 
 class MyApp extends StatefulWidget {
@@ -152,6 +134,9 @@ class _MyAppState extends State<MyApp> {
         GlobalCupertinoLocalizations.delegate,
         MonthYearPickerLocalizations.delegate, // ✅ Required
       ],
+      supportedLocales: const [
+        Locale('en'), // ✅ Add supported locales
+      ],
       routes: {
         '/user': (context) => const UserPage(),
         '/dashboard': (context) => const DashboardPage(),
@@ -173,9 +158,9 @@ class _MyAppState extends State<MyApp> {
       title: 'Expense Tracker',
       theme: currentThemeData,
       home: SettingsPage(
-              currentTheme: selectedThemeName,
-              onThemeChanged: (newTheme) => handleThemeChange(newTheme),
-            ), // your main app screen
+        currentTheme: selectedThemeName,
+        onThemeChanged: (newTheme) => handleThemeChange(newTheme),
+      ), // your main app screen
     );
   }
 }

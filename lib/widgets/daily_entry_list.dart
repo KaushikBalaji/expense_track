@@ -12,12 +12,12 @@ class DailyEntryListPanel extends StatefulWidget {
   final Function()? onChanged;
 
   const DailyEntryListPanel({
-    Key? key,
+    super.key,
     // required this.allEntries,
     required this.initialDate,
     required this.onDelete,
     this.onChanged,
-  }) : super(key: key);
+  });
 
   @override
   State<DailyEntryListPanel> createState() => _DailyEntryListPanelState();
@@ -84,11 +84,6 @@ class _DailyEntryListPanelState extends State<DailyEntryListPanel> {
     }
   }
 
-  void _handleDelete(Entry entry) async {
-    await widget.onDelete(entry); // Delete and inform parent
-    await _loadEntries(); // Refresh this panel
-    widget.onChanged?.call(); // Notify parent to reload calendar
-  }
 
   void _handleTapEntry(Entry entry) async {
     showDialog(
@@ -111,13 +106,12 @@ class _DailyEntryListPanelState extends State<DailyEntryListPanel> {
   @override
   Widget build(BuildContext context) {
     final entries = _entriesForSelectedDate;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Padding(
       padding: MediaQuery.of(context).viewInsets,
       child: Container(
         decoration: BoxDecoration(
-          color: Theme.of(context).dialogBackgroundColor,
+          color: Theme.of(context).scaffoldBackgroundColor,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
           boxShadow: [
             BoxShadow(
@@ -182,10 +176,6 @@ class _DailyEntryListPanelState extends State<DailyEntryListPanel> {
                             (ctx, i) => EntryCard(
                               entry: _entries[i],
                               onTap: () => _handleTapEntry(_entries[i]),
-                              // onDelete:
-                              //     () => _handleDelete(
-                              //       _entries[i],
-                              //     ), // Optional delete icon
                             ),
                       ),
             ),

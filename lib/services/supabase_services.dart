@@ -13,7 +13,6 @@ import '../utils/predefined_categories.dart';
 import '../models/entry.dart';
 
 final supabase = Supabase.instance.client;
-final categoryStatus = Hive.box<List>('categorystatus');
 
 class AuthResult {
   final bool success;

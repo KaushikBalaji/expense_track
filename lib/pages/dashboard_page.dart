@@ -325,6 +325,7 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Iterable<Entry> _getFilteredEntries() {
+    // Custom date range
     if (_selectedRange == DateRangeType.custom && _customRange != null) {
       return _box.values.where(
         (entry) =>
@@ -332,6 +333,25 @@ class _DashboardPageState extends State<DashboardPage> {
               _customRange!.start.subtract(const Duration(days: 1)),
             ) &&
             entry.date.isBefore(_customRange!.end.add(const Duration(days: 1))),
+      );
+    }
+
+    // Daily chart
+    if (_selectedRange == DateRangeType.daily) {
+      return _box.values.where((entry) => entry.date.day == _selectedMonth.day);
+    }
+
+    // Weekly chart
+    if (_selectedRange == DateRangeType.weekly) {
+      final weekday = _selectedMonth.weekday; // 1 = Monday
+      final startOfWeek = _selectedMonth.subtract(Duration(days: weekday - 1));
+      final endOfWeek = startOfWeek.add(const Duration(days: 6));
+      return _box.values.where(
+        (entry) =>
+            entry.date.isAfter(
+              startOfWeek.subtract(const Duration(seconds: 1)),
+            ) &&
+            entry.date.isBefore(endOfWeek.add(const Duration(days: 1))),
       );
     }
 
@@ -365,6 +385,32 @@ class _DashboardPageState extends State<DashboardPage> {
           ),
     );
     return Supabase.instance.client.auth.currentUser != null;
+  }
+
+  String get _dateLabel {
+    switch (_selectedRange) {
+      case DateRangeType.daily:
+        return DateFormat.yMMMd().format(_selectedMonth);
+      case DateRangeType.weekly:
+        final startOfWeek = DateTime(
+          _selectedMonth.year,
+          _selectedMonth.month,
+          _selectedMonth.day,
+        ).subtract(Duration(days: _selectedMonth.weekday - 1));
+        final endOfWeek = startOfWeek.add(const Duration(days: 6));
+        final startStr = DateFormat.MMMd().format(startOfWeek);
+        final endStr = DateFormat.MMMd().format(endOfWeek);
+        return "$startStr - $endStr";
+      case DateRangeType.monthly:
+        return DateFormat.yMMMM().format(_selectedMonth);
+      case DateRangeType.yearly:
+        return DateFormat.y().format(_selectedMonth);
+      case DateRangeType.custom:
+        if (_customRange == null) return "Custom Range";
+        final start = DateFormat.yMMMd().format(_customRange!.start);
+        final end = DateFormat.yMMMd().format(_customRange!.end);
+        return "$start - $end";
+    }
   }
 
   @override
@@ -474,26 +520,71 @@ class _DashboardPageState extends State<DashboardPage> {
                       ),
                     ),
 
-                    // Date Selector moved here
+                    const SizedBox(height: 8),
+
+                    // Range Selector Icon below balance cards
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: DateSelector(
-                        selectedRange: _selectedRange,
-                        selectedDate: _selectedMonth,
-                        customRange: _customRange,
-                        onChanged: ({
-                          required DateRangeType rangeType,
-                          required DateTime date,
-                          DateTimeRange? customRange,
-                        }) {
-                          setState(() {
-                            _selectedRange = rangeType;
-                            _selectedMonth = date;
-                            _customRange = customRange;
-                            _calculateSummary();
-                            _generateChartData();
-                          });
-                        },
+                      padding: const EdgeInsets.only(top: 8.0, bottom: 16.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'Range: ${_formatRangeLabel(_selectedRange)}',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          IconButton(
+                            tooltip: 'Change Range',
+                            icon: const Icon(Icons.filter_list),
+                            onPressed: () => _showRangeSelector(context),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.chevron_left),
+                            onPressed: () {
+                              setState(() {
+                                _selectedMonth =
+                                    _selectedMonth = _getPreviousDate(
+                                      _selectedMonth,
+                                      _selectedRange,
+                                    );
+                                _calculateSummary();
+                                _generateChartData();
+                              });
+                            },
+                          ),
+                          Text(
+                            _dateLabel,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.chevron_right),
+                            onPressed: () {
+                              setState(() {
+                                _selectedMonth =
+                                    _selectedMonth = _getNextDate(
+                                      _selectedMonth,
+                                      _selectedRange,
+                                    );
+                                _calculateSummary();
+                                _generateChartData();
+                              });
+                            },
+                          ),
+                        ],
                       ),
                     ),
 
@@ -516,6 +607,153 @@ class _DashboardPageState extends State<DashboardPage> {
           );
         },
       ),
+    );
+  }
+
+  DateTime _getPreviousDate(DateTime date, DateRangeType range) {
+    switch (range) {
+      case DateRangeType.daily:
+        return date.subtract(const Duration(days: 1));
+      case DateRangeType.weekly:
+        return date.subtract(const Duration(days: 7));
+      case DateRangeType.monthly:
+        return DateTime(date.year, date.month - 1);
+      case DateRangeType.yearly:
+        return DateTime(date.year - 1, date.month);
+      case DateRangeType.custom:
+        return date; // No change for custom
+    }
+  }
+
+  DateTime _getNextDate(DateTime date, DateRangeType range) {
+    switch (range) {
+      case DateRangeType.daily:
+        return date.add(const Duration(days: 1));
+      case DateRangeType.weekly:
+        return date.add(const Duration(days: 7));
+      case DateRangeType.monthly:
+        return DateTime(date.year, date.month + 1);
+      case DateRangeType.yearly:
+        return DateTime(date.year + 1, date.month);
+      case DateRangeType.custom:
+        return date; // No change for custom
+    }
+  }
+
+  DateTime _getStartDate(DateTime date, DateRangeType range) {
+    switch (range) {
+      case DateRangeType.daily:
+        return DateTime(date.year, date.month, date.day);
+      case DateRangeType.weekly:
+        return date.subtract(Duration(days: date.weekday - 1));
+      case DateRangeType.monthly:
+        return DateTime(date.year, date.month, 1);
+      case DateRangeType.yearly:
+        return DateTime(date.year, 1, 1);
+      case DateRangeType.custom:
+        return _customRange?.start ?? date;
+    }
+  }
+
+  DateTime _getEndDate(DateTime date, DateRangeType range) {
+    switch (range) {
+      case DateRangeType.daily:
+        return DateTime(date.year, date.month, date.day);
+      case DateRangeType.weekly:
+        return date
+            .subtract(Duration(days: date.weekday - 1))
+            .add(const Duration(days: 6));
+      case DateRangeType.monthly:
+        return DateTime(date.year, date.month + 1, 0);
+      case DateRangeType.yearly:
+        return DateTime(date.year, 12, 31);
+      case DateRangeType.custom:
+        return _customRange?.end ?? date;
+    }
+  }
+
+  String _formatRangeLabel(DateRangeType type) {
+    switch (type) {
+      case DateRangeType.daily:
+        return 'Daily';
+      case DateRangeType.weekly:
+        return 'Weekly';
+      case DateRangeType.monthly:
+        return 'Monthly';
+      case DateRangeType.yearly:
+        return 'Yearly';
+      case DateRangeType.custom:
+        return 'Custom Range';
+    }
+  }
+
+  void _showRangeSelector(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setStateSheet) {
+            return Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Select Range',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 10),
+                  ...DateRangeType.values.map((rangeType) {
+                    return RadioListTile<DateRangeType>(
+                      title: Text(_formatRangeLabel(rangeType)),
+                      value: rangeType,
+                      groupValue: _selectedRange,
+                      onChanged: (value) async {
+                        Navigator.pop(context);
+                        DateTime date = DateTime.now();
+                        DateTimeRange? custom;
+
+                        if (value == DateRangeType.custom) {
+                          final picked = await showDateRangePicker(
+                            context: context,
+                            firstDate: DateTime(2000),
+                            lastDate: DateTime.now(),
+                            initialDateRange:
+                                _customRange ??
+                                DateTimeRange(
+                                  start: DateTime.now().subtract(
+                                    const Duration(days: 7),
+                                  ),
+                                  end: DateTime.now(),
+                                ),
+                          );
+                          if (picked == null) return;
+                          custom = picked;
+                          date = picked.start;
+                        } else {
+                          date = DateTime.now();
+                          debugPrint("Date: $date");
+                        }
+
+                        setState(() {
+                          _selectedRange = value!;
+                          _selectedMonth = date;
+                          _customRange = custom;
+                          _calculateSummary();
+                          _generateChartData();
+                        });
+                      },
+                    );
+                  }),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 

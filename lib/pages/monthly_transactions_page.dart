@@ -2,16 +2,13 @@ import 'package:expense_track/services/supabase_services.dart';
 import 'package:expense_track/widgets/daily_entry_list.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:hive/hive.dart';
 
 import '../models/entry.dart';
-import '../services/hive_service.dart';
 import '../widgets/CustomAppBar.dart';
 import '../widgets/CustomSideBar.dart';
 import '../widgets/EntryDialog.dart';
-import '../widgets/entry_list.dart';
 
 /// Transactions page that shows a full‑month calendar.
 ///
@@ -27,8 +24,6 @@ class MonthlyTransactionsPage extends StatefulWidget {
 }
 
 class _MonthlyTransactionsPageState extends State<MonthlyTransactionsPage> {
-  /// Raw list of all entries.
-  List<Entry> _entries = [];
 
   /// Maps a date (truncated to midnight) to its entries.
   late Map<DateTime, List<Entry>> _entriesByDate = {};
@@ -60,7 +55,6 @@ class _MonthlyTransactionsPageState extends State<MonthlyTransactionsPage> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           setState(() {
-            _entries = updatedEntries;
             _entriesByDate = grouped;
             _dailyTotals = totals;
           });
@@ -119,7 +113,6 @@ class _MonthlyTransactionsPageState extends State<MonthlyTransactionsPage> {
             onSuccess: (action) {
               if (action == EntryDialogAction.edited) {
                 setState(() {
-                  _entries = Hive.box<Entry>('entriesBox').values.toList();
                   _loadEntries();
                 });
               }
@@ -129,7 +122,6 @@ class _MonthlyTransactionsPageState extends State<MonthlyTransactionsPage> {
   }
 
   void _openBottomSheetForDate(DateTime date) {
-    final entries = _entriesByDate[_dateKey(date)] ?? [];
 
     showModalBottomSheet(
       context: context,
@@ -151,6 +143,7 @@ class _MonthlyTransactionsPageState extends State<MonthlyTransactionsPage> {
             padding: MediaQuery.of(ctx).viewInsets,
             child: SizedBox(
               height: MediaQuery.of(ctx).size.height * 0.6,
+              width: MediaQuery.of(ctx).size.width * 0.5,
               child: Column(
                 children: [
                   Expanded(
@@ -175,9 +168,6 @@ class _MonthlyTransactionsPageState extends State<MonthlyTransactionsPage> {
       },
     ).whenComplete(_loadEntries);
   }
-
-  String _dateLabel(DateTime date) =>
-      "${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}";
 
   //--------------------------------------------------
   // UI

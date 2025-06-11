@@ -1,8 +1,10 @@
 import 'package:expense_track/models/category_item.dart';
 import 'package:expense_track/models/entry.dart'; // ✅ Added
+import 'package:expense_track/widgets/auth_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import '../services/supabase_services.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../utils/predefined_categories.dart';
 
 class CategoryManagementPage extends StatefulWidget {
@@ -14,7 +16,6 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
   late Box<CategoryItem> categoryBox;
   final Box<Entry> entriesBox = Hive.box<Entry>('entriesBox'); // ✅ Added
   String selectedType = 'Income';
-  // final Box<List> categoryStatus = Hive.box('categoryStatus');
   final Set<String> protectedCategoryNames = {'Food', 'House', 'Clothing'};
 
   @override
@@ -22,14 +23,14 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
     super.initState();
     categoryBox = Hive.box<CategoryItem>('categories');
     // for (final item in categoryBox.values) {
-    //   print(
+    //   debugPrint(
     //     'ID: ${item.id}, Name: ${item.name}, Type: ${item.type}, isActive: ${item.isActive}, Icon: ${item.iconCodePoint}',
     //   );
     // }
 
-    print("📦 Categories in Hive:");
+    debugPrint("📦 Categories in Hive:");
     for (final c in categoryBox.values) {
-      print(
+      debugPrint(
         "ID: ${c.id}, Name: ${c.name}, Type: ${c.type}, Icon: ${c.iconCodePoint}, Active: ${c.isActive}",
       );
     }
@@ -37,46 +38,37 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
     // migrateActiveStatusIntoCategoryItems();
   }
 
-  Future<void> migrateActiveStatusIntoCategoryItems() async {
-    final categoryBox = Hive.box<CategoryItem>('categories');
-    final statusBox = Hive.box('categoryStatus');
-
-    final activeIds =
-        statusBox.get('activeCategories', defaultValue: <String>[])!;
-
-    for (final item in categoryBox.values) {
-      final shouldBeActive = activeIds.contains(item.id);
-      if (item.isActive != shouldBeActive) {
-        item.isActive = shouldBeActive;
-        await item.save(); // 🔥 Persist the update
-      }
-    }
-
-    await statusBox.delete('activeCategories');
-    print("✅ Migrated active status into CategoryItem");
-  }
-
   bool isCategorySaved(CategoryItem item) {
     return categoryBox.values.any((c) => c.id == item.id);
   }
-
-  // void setCategoryActive(CategoryItem category, bool isActive) {
-  //   category.isActive = isActive;
-  // }
-
-  // bool isCategoryActive(String categoryId) {
-  //   final activeIds =
-  //       categoryStatus.get('activeCategories', defaultValue: <String>[])!;
-  //   return activeIds.contains(categoryId);
-  // }
 
   bool isCategoryActive(CategoryItem item) {
     final saved = categoryBox.get(item.id);
     return saved?.isActive ?? false;
   }
 
+  Future<bool> ensureUserIsAuthenticated(BuildContext context) async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user != null) return true;
+
+    // Show auth dialog in AlertDialog just like your dropdown
+    await showDialog(
+      context: context,
+      builder:
+          (_) => AlertDialog(
+            contentPadding: const EdgeInsets.all(24),
+            content: AuthDialogContent(
+              onClose: () => Navigator.of(context).pop(),
+            ),
+          ),
+    );
+
+    // Return true if user is authenticated after dialog
+    return Supabase.instance.client.auth.currentUser != null;
+  }
+
   Future<void> toggleCategory(CategoryItem item, bool newValue) async {
-    print('ToggleCategory called: ${item.name} -> $newValue');
+    debugPrint('ToggleCategory called: ${item.name} -> $newValue');
     final exists = isCategorySaved(item);
 
     if (protectedCategoryNames.contains(item.name) && !newValue) {
@@ -151,9 +143,7 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
         item.isActive = true;
         await item.save();
       }
-    } 
-
-    else if (!newValue && exists) {
+    } else if (!newValue && exists) {
       final keyToRemove = categoryBox.keys.firstWhere((k) {
         final c = categoryBox.get(k);
         return c?.id == item.id;
@@ -204,7 +194,9 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
                   children: [
                     ElevatedButton.icon(
                       onPressed: () async {
+                        if (!await ensureUserIsAuthenticated(context)) return;
                         final userId = supabase.auth.currentUser?.id;
+
                         await SupabaseService.uploadAllCategoriesStatus(
                           userId!,
                         );
@@ -219,6 +211,7 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
                     ),
                     ElevatedButton.icon(
                       onPressed: () async {
+                        if (!await ensureUserIsAuthenticated(context)) return;
                         final userId = supabase.auth.currentUser?.id;
                         await SupabaseService.clearAndSyncCategoriesFromSupabase(
                           userId!,

@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:uuid/uuid.dart';
 
@@ -36,7 +37,7 @@ class Entry extends HiveObject {
     DateTime? lastModified,
   }) : id = id ?? const Uuid().v4(),
        lastModified = lastModified ?? DateTime.now() {
-    print('Entry created: $title, $amount, $tag, $date, $type, id: $id');
+    debugPrint('Entry created: $title, $amount, $tag, $date, $type, id: $id');
   }
 
   /// For uploading to Supabase

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:expense_track/models/category_item.dart'; // Hive model
 
-
 class CategorySelectorSheet extends StatefulWidget {
   final String selectedCategory;
   final String? allowedType; // Optional filter: 'Income' or 'Expense'
@@ -87,10 +86,38 @@ class _CategorySelectorSheetState extends State<CategorySelectorSheet> {
               : DefaultTabController(
                 length: 2,
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            "Select Category",
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: () async {
+                              await Navigator.pushNamed(context, '/categories');
+                              _loadCategoriesFromHive();
+                            },
+                            icon: const Icon(Icons.settings),
+                            tooltip: "Manage categories",
+                          ),
+                        ],
+                      ),
+                    ),
                     const TabBar(
                       tabs: [Tab(text: 'Income'), Tab(text: 'Expense')],
                     ),
+                    const SizedBox(height: 8),
                     Expanded(
                       child: TabBarView(
                         children: [
@@ -105,10 +132,7 @@ class _CategorySelectorSheetState extends State<CategorySelectorSheet> {
     );
   }
 
-  Widget _buildRadioGrid(
-    BuildContext context,
-    List<CategoryItem> categories,
-  ) {
+  Widget _buildRadioGrid(BuildContext context, List<CategoryItem> categories) {
     debugPrint('>>> _buildRadioGrid with ${categories.length} items');
 
     return Padding(

@@ -51,7 +51,7 @@ class ExcelOperationsSyncfusion {
     final file = File('${directory.path}/exported_entries_syncfusion.xlsx');
     await file.writeAsBytes(bytes);
 
-    print('Excel exported to ${file.path}');
+    debugPrint('Excel exported to ${file.path}');
   }
 
   static Future<void> newimportFromExcel(File file) async {
@@ -123,7 +123,7 @@ class ExcelOperationsSyncfusion {
       await box.put(entry.id, entry);
     }
 
-    print(
+    debugPrint(
       '✅ Imported ${sheet.rows.length - 1} entries from Excel with category activation.',
     );
   }
@@ -139,13 +139,13 @@ class ExcelOperationsSyncfusion {
     final file = File('${directory.path}/exported_entries.json');
     await file.writeAsString(jsonEncode(jsonList));
 
-    print('✅ JSON exported to ${file.path}');
+    debugPrint('✅ JSON exported to ${file.path}');
   }
 
   /// Import entries from a JSON file into Hive and activate their categories
   static Future<void> importFromJson(File file) async {
     if (!await file.exists()) {
-      print('❌ JSON file not found: ${file.path}');
+      debugPrint('❌ JSON file not found: ${file.path}');
       return;
     }
 
@@ -195,7 +195,7 @@ class ExcelOperationsSyncfusion {
       }
     }
 
-    print(
+    debugPrint(
       '✅ Imported ${jsonData.length} entries from JSON with category activation.',
     );
   }

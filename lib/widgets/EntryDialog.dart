@@ -88,6 +88,15 @@ class _EntryDialogState extends State<EntryDialog> {
 
   void _submit() async {
     if (_formKey.currentState!.validate()) {
+      if (_selectedTag.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please select a category'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
       final title = _titleController.text.trim();
       final amount = double.parse(_amountController.text.trim());
       final box = Hive.box<Entry>('entriesBox');
@@ -111,7 +120,7 @@ class _EntryDialogState extends State<EntryDialog> {
           date: _selectedDate,
           tag: _selectedTag,
           type: type,
-          lastModified: _selectedDate
+          lastModified: _selectedDate,
         );
         await box.put(newEntry.id, newEntry);
       }
@@ -491,7 +500,6 @@ class _EntryDialogState extends State<EntryDialog> {
       case EntryDialogMode.edit:
         return 'Edit Transaction';
       case EntryDialogMode.add:
-      default:
         return 'Add Transaction';
     }
   }

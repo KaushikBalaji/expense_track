@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/entry.dart';
@@ -11,14 +12,14 @@ class HiveService {
   // Initialize box in this static method
   static Future<void> initialize() async {
     // _box = await Hive.openBox<Entry>('entriesBox');
-    // print('Hivebox open');
+    // debugPrint('Hivebox open');
     try {
       _entryBox = await Hive.openBox<Entry>('entriesBox');
       _categoryBox = await Hive.openBox<CategoryItem>('categories');
 
-      print('Hivebox open');
+      debugPrint('Hivebox open');
     } catch (e) {
-      print('Error opening Hive box: $e');
+      debugPrint('Error opening Hive box: $e');
     }
   }
 
@@ -27,7 +28,7 @@ class HiveService {
   }
 
   static Future<void> addExpense(Entry expense) async {
-    print('Adding expense: $expense');
+    debugPrint('Adding expense: $expense');
     await _entryBox.put(expense.id, expense);
   }
 
@@ -50,7 +51,7 @@ class HiveService {
       try {
         await uploadFn(cat);
       } catch (e) {
-        print('Failed to upload ${cat.name}: $e');
+        debugPrint('Failed to upload ${cat.name}: $e');
       }
     }
   }

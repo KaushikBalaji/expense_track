@@ -2,7 +2,6 @@ import 'package:expense_track/services/supabase_services.dart';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import '../models/entry.dart';
-import '../services/hive_service.dart';
 import '../widgets/CustomAppbar.dart';
 import '../widgets/CustomSidebar.dart';
 import '../widgets/EntryDialog.dart';
@@ -18,6 +17,7 @@ class TransactionsPage extends StatefulWidget {
 
 class _TransactionsPageState extends State<TransactionsPage> {
   List<Entry> _entries = [];
+  static late Box<Entry> _entryBox;
 
   @override
   void initState() {
@@ -26,7 +26,8 @@ class _TransactionsPageState extends State<TransactionsPage> {
   }
 
   Future<void> _loadEntries() async {
-    List<Entry> entries = await HiveService.getAllExpenses();
+    _entryBox = await Hive.openBox<Entry>('entriesBox');
+    List<Entry> entries = _entryBox.values.toList();
     setState(() {
       _entries = entries;
     });
