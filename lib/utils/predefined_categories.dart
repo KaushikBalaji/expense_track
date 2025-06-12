@@ -59,6 +59,22 @@ final List<CategoryItem> predefinedCategories = [
     fontFamily: Icons.business_center.fontFamily,
     fontPackage: Icons.business_center.fontPackage,
   ),
+  CategoryItem(
+    id: 'refund',
+    name: 'Refund',
+    type: 'Income',
+    iconCodePoint: Icons.replay.codePoint,
+    fontFamily: Icons.replay.fontFamily,
+    fontPackage: Icons.replay.fontPackage,
+  ),
+  CategoryItem(
+    id: 'lottery',
+    name: 'Lottery',
+    type: 'Income',
+    iconCodePoint: Icons.casino.codePoint,
+    fontFamily: Icons.casino.fontFamily,
+    fontPackage: Icons.casino.fontPackage,
+  ),
 
   // Expense Categories
   CategoryItem(
@@ -156,5 +172,45 @@ final List<CategoryItem> predefinedCategories = [
     iconCodePoint: Icons.subscriptions.codePoint,
     fontFamily: Icons.subscriptions.fontFamily,
     fontPackage: Icons.subscriptions.fontPackage,
+  ),
+  CategoryItem(
+    id: 'groceries',
+    name: 'Groceries',
+    type: 'Expense',
+    iconCodePoint: Icons.local_grocery_store.codePoint,
+    fontFamily: Icons.local_grocery_store.fontFamily,
+    fontPackage: Icons.local_grocery_store.fontPackage,
+  ),
+  CategoryItem(
+    id: 'insurance',
+    name: 'Insurance',
+    type: 'Expense',
+    iconCodePoint: Icons.security.codePoint,
+    fontFamily: Icons.security.fontFamily,
+    fontPackage: Icons.security.fontPackage,
+  ),
+  CategoryItem(
+    id: 'pets',
+    name: 'Pets',
+    type: 'Expense',
+    iconCodePoint: Icons.pets.codePoint,
+    fontFamily: Icons.pets.fontFamily,
+    fontPackage: Icons.pets.fontPackage,
+  ),
+  CategoryItem(
+    id: 'loan',
+    name: 'Loan Repayment',
+    type: 'Expense',
+    iconCodePoint: Icons.money_off.codePoint,
+    fontFamily: Icons.money_off.fontFamily,
+    fontPackage: Icons.money_off.fontPackage,
+  ),
+  CategoryItem(
+    id: 'emergency',
+    name: 'Emergency',
+    type: 'Expense',
+    iconCodePoint: Icons.warning.codePoint,
+    fontFamily: Icons.warning.fontFamily,
+    fontPackage: Icons.warning.fontPackage,
   ),
 ];

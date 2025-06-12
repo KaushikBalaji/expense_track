@@ -166,8 +166,7 @@ class SupabaseService {
         'note': entry.title,
         'date': entry.date.toIso8601String(),
         'tag': entry.tag,
-        'last_modified':entry.lastModified.toIso8601String(),
-        
+        'last_modified': entry.lastModified.toIso8601String(),
       };
       debugPrint('📦 Data to upload: $data');
 
@@ -238,46 +237,54 @@ class SupabaseService {
   }
 
   static Future<void> syncSupabaseToHive(Box box) async {
-    if (userId == null) {
-      debugPrint('⚠️ User not authenticated');
-      return;
-    }
-
-    debugPrint('⬇️ Fetching entries from Supabase...');
-
-    try {
-      final response = await supabase
-          .from(entryTable)
-          .select()
-          .eq('user_id', userId!);
-
-      final List<dynamic> data = response;
-      debugPrint('📥 Fetched ${data.length} entries from Supabase.');
-
-      for (final entry in data) {
-        final id = entry['id'].toString();
-        debugPrint('🧾 Entry from Supabase: $entry');
-
-        final hiveEntry = Entry.fromMap(entry);
-
-        if (box.containsKey(id)) {
-          // Update existing entry in Hive with latest data from Supabase
-          await box.put(id, hiveEntry);
-          debugPrint('🔄 Updated existing entry in Hive: $id');
-        } else {
-          final localEntry = box.get(id) as Entry;
-          if (hiveEntry.lastModified.isAfter(localEntry.lastModified)) {
-            box.put(id, hiveEntry);
-            debugPrint('🔄 Updated entry $id (newer from Supabase)');
-          } else {
-            debugPrint('✅ Local entry $id is up to date');
-          }
-        }
-      }
-    } catch (e) {
-      debugPrint('❌ Error fetching entries from Supabase: $e');
-    }
+  if (userId == null) {
+    debugPrint('⚠️ User not authenticated');
+    return;
   }
+
+  debugPrint('⬇️ Fetching entries from Supabase...');
+
+  try {
+    final response = await supabase
+        .from(entryTable)
+        .select()
+        .eq('user_id', userId!);
+
+    final List<dynamic> data = response;
+    debugPrint('📥 Fetched ${data.length} entries from Supabase.');
+
+    for (final entry in data) {
+      final id = entry['id'].toString();
+      debugPrint('🧾 Entry from Supabase: $entry');
+
+      // ✅ Construct Entry object from Supabase data
+      final hiveEntry = Entry(
+        id: id,
+        amount: (entry['amount'] as num).toDouble(),
+        type: entry['type'] ?? '',
+        title: entry['note'] ?? '',
+        tag: entry['tag'] ?? '',
+        date: DateTime.parse(entry['date']),
+        lastModified: DateTime.parse(entry['last_modified']),
+      );
+
+      final localEntry = box.get(id);
+
+      if (localEntry == null) {
+        await box.put(id, hiveEntry);
+        debugPrint('➕ Inserted new entry in Hive: $id');
+      } else if (hiveEntry.lastModified.isAfter(localEntry.lastModified)) {
+        await box.put(id, hiveEntry);
+        debugPrint('🔄 Updated entry $id (newer from Supabase)');
+      } else {
+        debugPrint('✅ Local entry $id is up to date');
+      }
+    }
+  } catch (e) {
+    debugPrint('❌ Error fetching entries from Supabase: $e');
+  }
+}
+
 
   static Future<void> clearAndSyncCategoriesFromSupabase(String userId) async {
     final categoryBox = Hive.box<CategoryItem>('categories');

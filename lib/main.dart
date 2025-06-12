@@ -1,5 +1,6 @@
 import 'package:expense_track/models/budget.dart';
 import 'package:expense_track/models/category_item.dart';
+import 'package:expense_track/models/recurring_entry.dart';
 import 'package:expense_track/pages/budgets_page.dart';
 import 'package:expense_track/pages/category_page.dart';
 import 'package:expense_track/pages/monthly_transactions_page.dart';
@@ -37,6 +38,13 @@ void main() async {
     Hive.registerAdapter(BudgetAdapter());
   }
 
+  // For Recurring entry hive
+  if (!Hive.isAdapterRegistered(5)) {
+    Hive.registerAdapter(RecurringEntryAdapter());
+  }
+
+
+
   // to save categories in hive
   if (!Hive.isAdapterRegistered(4)) {
     Hive.registerAdapter(CategoryItemAdapter());
@@ -56,6 +64,7 @@ Future<void> initialize() async {
     await Hive.openBox<List>('deletedEntries');
     await Hive.openBox<Entry>('entriesBox');
     await Hive.openBox<CategoryItem>('categories');
+    await Hive.openBox<RecurringEntry>('recurring_entries_box');
 
     debugPrint('Hivebox open');
   } catch (e) {
