@@ -29,13 +29,14 @@ class RecurringEntryAdapter extends TypeAdapter<RecurringEntry> {
       note: fields[9] as String?,
       lastModified: fields[10] as DateTime?,
       lastGenerated: fields[11] as DateTime?,
+      weekdays: (fields[12] as List?)?.cast<int>(),
     );
   }
 
   @override
   void write(BinaryWriter writer, RecurringEntry obj) {
     writer
-      ..writeByte(12)
+      ..writeByte(13)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -59,7 +60,9 @@ class RecurringEntryAdapter extends TypeAdapter<RecurringEntry> {
       ..writeByte(10)
       ..write(obj.lastModified)
       ..writeByte(11)
-      ..write(obj.lastGenerated);
+      ..write(obj.lastGenerated)
+      ..writeByte(12)
+      ..write(obj.weekdays);
   }
 
   @override

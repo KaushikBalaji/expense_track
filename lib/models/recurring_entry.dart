@@ -40,7 +40,10 @@ class RecurringEntry extends HiveObject {
   DateTime lastModified;
 
   @HiveField(11)
-  DateTime? lastGenerated; // for tracking auto-generation
+  DateTime? lastGenerated;
+
+  @HiveField(12)
+  List<int>? weekdays; // 0 = Sunday, 6 = Saturday (for weekly rules)
 
   RecurringEntry({
     String? id,
@@ -55,9 +58,12 @@ class RecurringEntry extends HiveObject {
     this.note,
     DateTime? lastModified,
     this.lastGenerated,
+    this.weekdays,
   })  : id = id ?? const Uuid().v4(),
         lastModified = lastModified ?? DateTime.now() {
-    debugPrint('RecurringEntry created: $title - $frequency every $interval unit(s)');
+    debugPrint(
+      'RecurringEntry created: $title - $frequency every $interval unit(s), starts $startDate',
+    );
   }
 
   Map<String, dynamic> toMap(String userId) => {
@@ -73,6 +79,7 @@ class RecurringEntry extends HiveObject {
     'end_date': endDate?.toIso8601String(),
     'note': note,
     'last_modified': lastModified.toIso8601String(),
+    'weekdays': weekdays,
   };
 
   factory RecurringEntry.fromMap(Map<String, dynamic> map) => RecurringEntry(
@@ -89,5 +96,6 @@ class RecurringEntry extends HiveObject {
     lastModified: map['last_modified'] != null
         ? DateTime.parse(map['last_modified'])
         : DateTime.now(),
+    weekdays: (map['weekdays'] as List?)?.map((e) => e as int).toList(),
   );
 }

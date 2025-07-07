@@ -113,7 +113,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     ElevatedButton(
                       onPressed: () {
                         prefs.setString('syncFrequency', selected);
-                        debugPrint('SyncFrequency set as $selected');
+                        debugPrint('SyncFrequency set as ${prefs.getString('syncFrequency')}');
                         Navigator.pop(context);
                       },
                       child: const Text('Save'),
@@ -228,6 +228,13 @@ class _SettingsPageState extends State<SettingsPage> {
                 label: 'Category Page',
                 onTap: () {
                   Navigator.pushNamed(context, '/categories');
+                },
+              ),
+              _buildOption(
+                icon: Icons.refresh_outlined,
+                label: 'Recurring Transactions',
+                onTap: () {
+                  Navigator.pushNamed(context, '/recurring');
                 },
               ),
               _buildOption(

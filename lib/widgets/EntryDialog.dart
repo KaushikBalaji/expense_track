@@ -1,5 +1,8 @@
 import 'package:expense_track/models/category_item.dart';
+import 'package:expense_track/models/recurring_entry.dart';
+import 'package:expense_track/models/recurring_rule.dart';
 import 'package:expense_track/services/supabase_services.dart';
+import 'package:expense_track/widgets/recurrence_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:hive/hive.dart';
@@ -8,7 +11,7 @@ import '../models/entry.dart';
 // import 'category_selector_sheet.dart';
 import 'hive_category_selector.dart';
 
-enum EntryDialogMode { add, edit, view }
+enum EntryDialogMode { add, edit, view, editRecurring  }
 
 enum EntryDialogAction { edited, deleted }
 
@@ -39,6 +42,8 @@ class _EntryDialogState extends State<EntryDialog> {
   late DateTime _selectedDate = DateTime.now();
   String type = 'Income';
   String _selectedTag = 'Salary';
+
+  RecurringRule? _recurrenceRule;
 
   late EntryDialogMode _currentMode;
 
@@ -97,37 +102,57 @@ class _EntryDialogState extends State<EntryDialog> {
         );
         return;
       }
+
       final title = _titleController.text.trim();
       final amount = double.parse(_amountController.text.trim());
-      final box = Hive.box<Entry>('entriesBox');
 
-      if (_currentMode == EntryDialogMode.edit && widget.initialEntry != null) {
-        final updatedEntry =
-            widget.initialEntry!
-              ..title = title
-              ..amount = amount
-              ..date = _selectedDate
-              ..tag = _selectedTag
-              ..type = type
-              ..lastModified = DateTime.now();
+      final isRecurring =
+          _recurrenceRule != null &&
+          _recurrenceRule!.type != RecurrenceType.none;
 
-        await updatedEntry.save();
-      } else {
-        final newEntry = Entry(
-          id: const Uuid().v4(),
+      if (isRecurring) {
+        // ✅ Save recurring entry template
+        final recurringBox = Hive.box<RecurringEntry>('recurring_entries_box');
+        final newRecurring = RecurringEntry(
           title: title,
           amount: amount,
-          date: _selectedDate,
           tag: _selectedTag,
           type: type,
-          lastModified: _selectedDate,
+          startDate: _selectedDate,
+          frequency: _recurrenceRule!.type.name,
+          interval: _recurrenceRule!.interval,
+          endDate: _recurrenceRule!.endDate,
+          weekdays: _recurrenceRule!.weekdays,
         );
-        await box.put(newEntry.id, newEntry);
+        await recurringBox.put(newRecurring.id, newRecurring);
+      } else {
+        // ✅ Save regular entry
+        final box = Hive.box<Entry>('entriesBox');
+
+        if (_currentMode == EntryDialogMode.edit &&
+            widget.initialEntry != null) {
+          final updatedEntry =
+              widget.initialEntry!
+                ..title = title
+                ..amount = amount
+                ..date = _selectedDate
+                ..tag = _selectedTag
+                ..type = type
+                ..lastModified = DateTime.now();
+          await updatedEntry.save();
+        } else {
+          final newEntry = Entry(
+            title: title,
+            amount: amount,
+            date: _selectedDate,
+            tag: _selectedTag,
+            type: type,
+          );
+          await box.put(newEntry.id, newEntry);
+        }
       }
 
-      if (widget.onSuccess != null) {
-        widget.onSuccess?.call(EntryDialogAction.edited);
-      }
+      widget.onSuccess?.call(EntryDialogAction.edited);
       if (context.mounted) Navigator.of(context).pop(true);
     }
   }
@@ -252,6 +277,19 @@ class _EntryDialogState extends State<EntryDialog> {
     );
   }
 
+
+  void _showRecurrenceOptions() async {
+    final result = await showModalBottomSheet<RecurringRule>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => RecurringOptionsSheet(initialRule: _recurrenceRule),
+    );
+
+    if (result != null) {
+      setState(() => _recurrenceRule = result);
+    }
+  }
+
   Widget _buildFormContent() {
     return Form(
       key: _formKey,
@@ -337,8 +375,26 @@ class _EntryDialogState extends State<EntryDialog> {
                   icon: const Icon(Icons.edit_calendar),
                   onPressed: _pickDateTime,
                 ),
+                IconButton(
+                  icon: const Icon(Icons.repeat),
+                  tooltip: "Set recurrence",
+                  onPressed: _showRecurrenceOptions,
+                ),
               ],
             ),
+
+            if (_recurrenceRule != null &&
+                _recurrenceRule!.type != RecurrenceType.none)
+              Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: Text(
+                  _recurrenceRule!.type == RecurrenceType.daily
+                      ? 'Every ${_recurrenceRule!.interval} day(s)'
+                      : 'Every ${_recurrenceRule!.interval} week(s) on '
+                          '${_recurrenceRule!.weekdays?.map((d) => DateFormat.E().format(DateTime(2024, 1, d + 1))).join(", ")}',
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                ),
+              ),
             const SizedBox(height: 16),
             const Divider(),
             Row(
@@ -489,6 +545,8 @@ class _EntryDialogState extends State<EntryDialog> {
       'Freelance',
       'Rental Income',
       'Business',
+      'Lottery',
+      'Refund',
     ];
     return incomeTags.contains(tagName) ? 'Income' : 'Expense';
   }
@@ -501,6 +559,8 @@ class _EntryDialogState extends State<EntryDialog> {
         return 'Edit Transaction';
       case EntryDialogMode.add:
         return 'Add Transaction';
+      case EntryDialogMode.editRecurring:
+        return 'Recurring Entry';
     }
   }
 }

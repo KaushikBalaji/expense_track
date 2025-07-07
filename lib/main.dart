@@ -4,6 +4,7 @@ import 'package:expense_track/models/recurring_entry.dart';
 import 'package:expense_track/pages/budgets_page.dart';
 import 'package:expense_track/pages/category_page.dart';
 import 'package:expense_track/pages/monthly_transactions_page.dart';
+import 'package:expense_track/pages/recurring_entries_page.dart';
 import 'package:expense_track/pages/sync_status_page.dart';
 import 'package:expense_track/pages/transactions_page.dart';
 import 'package:expense_track/pages/user_page.dart';
@@ -54,6 +55,7 @@ void main() async {
 
   debugPrint('Opening expensesBox...');
   await initialize();
+  await trySyncData();
 
   runApp(const MyApp());
 }
@@ -98,7 +100,6 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
-    trySyncData();
     selectedThemeName = 'Vscode'; // default theme
     currentThemeData = getThemeByName(selectedThemeName);
   }
@@ -155,6 +156,7 @@ class _MyAppState extends State<MyApp> {
             (context) => const MonthlyTransactionsPage(title: 'Transactions'),
         '/syncstatus': (context) => const SyncStatusPage(),
         '/budgets': (context) => const BudgetsPage(),
+        '/recurring': (context) => const RecurringEntriesPage(),
         '/settings':
             (_) => SettingsPage(
               currentTheme: selectedThemeName,

@@ -32,7 +32,6 @@ class HiveService {
     await _entryBox.put(expense.id, expense);
   }
 
-
   static Future<void> clearAllExpenses() async {
     await _entryBox.clear();
   }

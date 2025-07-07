@@ -54,6 +54,8 @@ class _DashboardPageState extends State<DashboardPage> {
   Future<void> _loadSyncStatus() async {
     final prefs = await SharedPreferences.getInstance();
     final internet = await SupabaseService.hasInternetConnection();
+    debugPrint("lastSyncTimestamp = ${prefs.getInt('lastSyncTimestamp')}");
+    debugPrint("syncFrequency = ${prefs.getString('syncFrequency')}");
 
     final lastMillis = prefs.getInt('lastSyncTimestamp') ?? 0;
     final lastSync =
