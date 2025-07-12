@@ -333,11 +333,6 @@ class SupabaseService {
           return {
             'id': item.id,
             'user_id': userId,
-            //'name': item.name,
-            //'type': item.type,
-            //'icon_code_point': item.iconCodePoint,
-            //'font_family': item.fontFamily,
-            //'font_package': item.fontPackage,
             'is_active': item.isActive,
           };
         }).toList();

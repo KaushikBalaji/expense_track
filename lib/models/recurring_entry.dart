@@ -99,3 +99,38 @@ class RecurringEntry extends HiveObject {
     weekdays: (map['weekdays'] as List?)?.map((e) => e as int).toList(),
   );
 }
+
+extension RecurringEntryCopy on RecurringEntry {
+  RecurringEntry copyWith({
+    String? id,
+    String? title,
+    double? amount,
+    String? tag,
+    String? type,
+    DateTime? startDate,
+    String? frequency,
+    int? interval,
+    DateTime? endDate,
+    String? note,
+    DateTime? lastModified,
+    DateTime? lastGenerated,
+    List<int>? weekdays,
+  }) {
+    return RecurringEntry(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      amount: amount ?? this.amount,
+      tag: tag ?? this.tag,
+      type: type ?? this.type,
+      startDate: startDate ?? this.startDate,
+      frequency: frequency ?? this.frequency,
+      interval: interval ?? this.interval,
+      endDate: endDate ?? this.endDate,
+      note: note ?? this.note,
+      lastModified: lastModified ?? this.lastModified,
+      lastGenerated: lastGenerated ?? this.lastGenerated,
+      weekdays: weekdays ?? this.weekdays,
+    );
+  }
+}
+

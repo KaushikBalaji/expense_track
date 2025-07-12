@@ -23,7 +23,7 @@ class _CustomSidebarState extends State<CustomSidebar> {
   }
 
   Future<void> _checkConnection() async {
-    final hasConnection = await hasInternetConnection();
+    final hasConnection = await SupabaseService.hasInternetConnection();
     if (mounted) {
       setState(() {
         _hasInternet = hasConnection;
@@ -31,22 +31,7 @@ class _CustomSidebarState extends State<CustomSidebar> {
       debugPrint('Network status: $hasConnection');
     }
   }
-
-  Future<bool> hasInternetConnection() async {
-    try {
-      final result = await InternetAddress.lookup('example.com');
-      if (result.isNotEmpty && result[0].rawAddress.isNotEmpty) {
-        final response = await http
-            .get(Uri.parse('https://example.com'))
-            .timeout(const Duration(seconds: 3));
-        return response.statusCode == 200;
-      }
-      return false;
-    } catch (_) {
-      return false;
-    }
-  }
-
+  
   @override
   Widget build(BuildContext context) {
     String? username = Supabase.instance.client.auth.currentUser?.email

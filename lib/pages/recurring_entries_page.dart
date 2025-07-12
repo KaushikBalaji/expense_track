@@ -69,131 +69,196 @@ class _RecurringEntriesPageState extends State<RecurringEntriesPage> {
   Widget build(BuildContext context) {
     final entries = _box.values.toList();
 
+    // Group by frequency
+    final grouped = {
+      'daily': <RecurringEntry>[],
+      'weekly': <RecurringEntry>[],
+      'monthly': <RecurringEntry>[],
+      'yearly': <RecurringEntry>[],
+      'other': <RecurringEntry>[],
+    };
+
+    for (var entry in entries) {
+      if (grouped.containsKey(entry.frequency)) {
+        grouped[entry.frequency]!.add(entry);
+      } else {
+        grouped['other']!.add(entry);
+      }
+    }
+
+    final frequencyTitles = {
+      'daily': 'Daily',
+      'weekly': 'Weekly',
+      'monthly': 'Monthly',
+      'yearly': 'Yearly',
+      'other': 'Other',
+    };
+
+    String _formatWeekdays(List<int> days) {
+      const weekdayMap = {
+        0: 'Sun',
+        1: 'Mon',
+        2: 'Tue',
+        3: 'Wed',
+        4: 'Thu',
+        5: 'Fri',
+        6: 'Sat',
+      };
+      // Sort for consistency (optional)
+      final sorted = [...days]..sort();
+      return sorted.map((d) => weekdayMap[d] ?? '').join(', ');
+    }
+
     return Scaffold(
       appBar: AppBar(title: const Text('Recurring Transactions')),
-      body: ListView.builder(
-        itemCount: entries.length,
-        itemBuilder: (context, index) {
-          final entry = entries[index];
-          final next = calculateNextOccurrence(entry);
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 700),
+          child: ListView(
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+            children:
+                grouped.entries.where((e) => e.value.isNotEmpty).map((group) {
+                  final freq = group.key;
+                  final entries = group.value;
 
-          return Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(
-                maxWidth: 600,
-              ), // Or 500/700 based on your design
-              child: Container(
-                margin: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 10,
-                ),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  // color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 8,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                  border: Border.all(color: Colors.grey.shade200),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Flexible(
-                          child: Text(
-                            entry.title,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            overflow: TextOverflow.ellipsis,
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    child: Card(
+                      elevation: 1,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: ExpansionTile(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        tilePadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        childrenPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 4,
+                        ),
+                        title: Text(
+                          '${frequencyTitles[freq]} (${entries.length})',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                        Row(
-                          children: [
-                            IconButton(
-                              icon: const Icon(
-                                Icons.edit,
-                                color: Colors.indigo,
-                              ),
-                              // tooltip: 'Edit',
-                              onPressed: () {
-                                // Handle edit
-                              },
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.delete, color: Colors.red),
-                              // tooltip: 'Delete',
-                              onPressed: () => _deleteRecurringEntry(entry.id),
-                            ),
-                          ],
-                        ),
-                      ],
+                        children:
+                            entries.map((entry) {
+                              final next = calculateNextOccurrence(entry);
+
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 8.0,
+                                ),
+                                child: Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context).cardColor,
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                      color: Colors.grey.shade300,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Icon(
+                                        entry.type == 'Income'
+                                            ? Icons.trending_up
+                                            : Icons.trending_down,
+                                        color:
+                                            entry.type == 'Income'
+                                                ? Colors.green
+                                                : Colors.red,
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              entry.title,
+                                              style: const TextStyle(
+                                                fontSize: 15,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              '₹${entry.amount.toStringAsFixed(2)} • Every ${entry.interval}${entry.frequency == 'weekly' && entry.weekdays != null ? ' on ${_formatWeekdays(entry.weekdays!)}' : ''}',
+                                              style: TextStyle(
+                                                fontSize: 13,
+                                                color: Colors.grey[700],
+                                              ),
+                                            ),
+                                            Text(
+                                              'Next: ${DateFormat.yMMMd().format(next)}',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: Colors.indigo.shade600,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Column(
+                                        children: [
+                                          IconButton(
+                                            icon: const Icon(
+                                              Icons.edit,
+                                              color: Colors.indigo,
+                                            ),
+                                            onPressed: () {
+                                              // TODO: Handle edit
+                                            },
+                                          ),
+                                          IconButton(
+                                            icon: const Icon(
+                                              Icons.delete,
+                                              color: Colors.red,
+                                            ),
+                                            onPressed:
+                                                () => _deleteRecurringEntry(
+                                                  entry.id,
+                                                ),
+                                          ),
+                                        ],
+                                      ),
+                                      
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                      ),
                     ),
-                    const SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(
-                              entry.type == 'Income'
-                                  ? Icons.trending_up
-                                  : Icons.trending_down,
-                              color:
-                                  entry.type == 'Income'
-                                      ? Colors.green
-                                      : Colors.red,
-                              size: 18,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              '₹${entry.amount.toStringAsFixed(2)}',
-                              style: const TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.indigo.shade50,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            'Next: ${DateFormat.yMMMd().format(next)}',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.indigo.shade700,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Repeats: ${entry.frequency} every ${entry.interval}',
-                      style: TextStyle(color: Colors.grey[600], fontSize: 13),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        },
+                  );
+                }).toList(),
+          ),
+          
+        ),
       ),
+
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _openAddDialog(forDate: DateTime.now()),
+        child: const Icon(Icons.add),
+      ),
+    );
+  }
+
+  void _openAddDialog({DateTime? forDate}) {
+    showDialog(
+      context: context,
+      builder:
+          (ctx) => EntryDialog(initialDate: forDate, mode: EntryDialogMode.add),
     );
   }
 }

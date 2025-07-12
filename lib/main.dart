@@ -54,6 +54,7 @@ void main() async {
 
   debugPrint('Opening expensesBox...');
   await initialize();
+  await generateDueRecurringEntries();
   await trySyncData();
 
   runApp(const MyApp());

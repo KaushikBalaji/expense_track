@@ -36,6 +36,7 @@ class _DashboardPageState extends State<DashboardPage> {
   String _syncMode = '';
   String _syncMessage = '';
   String _syncFrequency = 'Daily';
+  bool _syncIconLoading = true;
 
   double get getBalance => _totalIncome - _totalExpenses;
   String get curMonthLabel => DateFormat.yMMMM().format(_selectedMonth);
@@ -100,6 +101,7 @@ class _DashboardPageState extends State<DashboardPage> {
       _nextSyncInDays = nextSyncIn;
       _syncMessage = syncMessage;
       _isSynced = syncMode == 'auto' && nextSyncIn <= 0;
+      _syncIconLoading = false;
     });
   }
 
@@ -464,7 +466,19 @@ class _DashboardPageState extends State<DashboardPage> {
                         const SizedBox(width: 8),
                         PopupMenuButton<int>(
                           offset: Offset(0, 40),
-                          icon: getSyncStatusIcon(),
+                          icon: AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 300),
+                            child:
+                                _syncIconLoading
+                                    ? const SizedBox(
+                                      width: 24,
+                                      height: 24,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                    : getSyncStatusIcon(),
+                          ),
                           itemBuilder:
                               (context) => [
                                 PopupMenuItem(
