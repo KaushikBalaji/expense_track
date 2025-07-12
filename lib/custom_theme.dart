@@ -53,27 +53,27 @@ class VscodeTheme {
   );
 }
 
-class SunsetTheme {
+class QuartzMistTheme {
   ThemeData lightTheme = ThemeData(
     brightness: Brightness.light,
-    scaffoldBackgroundColor: Color(0xFFFFF3E0),
-    cardColor: Color(0xFFFFE0B2),
+    scaffoldBackgroundColor: const Color(0xFFFAF9F6),
+    cardColor: const Color(0xFFF2ECF4),
     appBarTheme: const AppBarTheme(
-      backgroundColor: Color(0xFFFF7043),
+      backgroundColor: Color(0xFF8E44AD),
       foregroundColor: Colors.white,
     ),
-    drawerTheme: const DrawerThemeData(backgroundColor: Color(0xFFFFCCBC)),
+    drawerTheme: const DrawerThemeData(backgroundColor: Color(0xFFEADDEF)),
     floatingActionButtonTheme: const FloatingActionButtonThemeData(
-      backgroundColor: Color(0xFFD84315),
+      backgroundColor: Color(0xFF9B59B6),
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(0xFFD84315),
+        backgroundColor: const Color(0xFF9B59B6),
         foregroundColor: Colors.white,
       ),
     ),
     colorScheme: ColorScheme.fromSeed(
-      seedColor: Color(0xFFFF7043),
+      seedColor: const Color(0xFF9B59B6),
       brightness: Brightness.light,
     ),
     useMaterial3: true,
@@ -81,53 +81,52 @@ class SunsetTheme {
 
   ThemeData darkTheme = ThemeData(
     brightness: Brightness.dark,
-    scaffoldBackgroundColor: Color(0xFF3E2723),
-    cardColor: Color(0xFF4E342E),
+    scaffoldBackgroundColor: const Color(0xFF2A2234),
+    cardColor: const Color(0xFF3B2B4F),
     appBarTheme: const AppBarTheme(
-      backgroundColor: Color(0xFFBF360C),
+      backgroundColor: Color(0xFF6C3483),
       foregroundColor: Colors.white,
     ),
-    drawerTheme: const DrawerThemeData(backgroundColor: Color(0xFF4E342E)),
+    drawerTheme: const DrawerThemeData(backgroundColor: Color(0xFF3B2B4F)),
     floatingActionButtonTheme: const FloatingActionButtonThemeData(
-      backgroundColor: Color(0xFFFF7043),
+      backgroundColor: Color(0xFFAF7AC5),
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(0xFFFF7043),
+        backgroundColor: const Color(0xFFAF7AC5),
         foregroundColor: Colors.black,
       ),
     ),
     colorScheme: ColorScheme.fromSeed(
-      seedColor: Color(0xFFFF7043),
+      seedColor: const Color(0xFF9B59B6),
       brightness: Brightness.dark,
     ),
     useMaterial3: true,
   );
 }
 
-class ForestTheme {
+
+class LapisMinimalTheme {
   ThemeData lightTheme = ThemeData(
     brightness: Brightness.light,
-    scaffoldBackgroundColor: Color(0xFFE8F5E9),
-    cardColor: Color(0xFFC8E6C9),
+    scaffoldBackgroundColor: const Color(0xFFF8FAFC),
+    cardColor: const Color(0xFFE2E8F0),
     appBarTheme: const AppBarTheme(
-      backgroundColor: Color(0xFF2E7D32),
+      backgroundColor: Color(0xFF3B82F6),
       foregroundColor: Colors.white,
     ),
-    drawerTheme: const DrawerThemeData(
-      backgroundColor: Color.fromARGB(255, 197, 226, 198),
-    ),
+    drawerTheme: const DrawerThemeData(backgroundColor: Color(0xFFE2E8F0)),
     floatingActionButtonTheme: const FloatingActionButtonThemeData(
-      backgroundColor: Color(0xFF1B5E20),
+      backgroundColor: Color(0xFF2563EB),
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(0xFF1B5E20),
+        backgroundColor: const Color(0xFF2563EB),
         foregroundColor: Colors.white,
       ),
     ),
     colorScheme: ColorScheme.fromSeed(
-      seedColor: Color(0xFF2E7D32),
+      seedColor: const Color(0xFF3B82F6),
       brightness: Brightness.light,
     ),
     useMaterial3: true,
@@ -135,31 +134,30 @@ class ForestTheme {
 
   ThemeData darkTheme = ThemeData(
     brightness: Brightness.dark,
-    scaffoldBackgroundColor: Color(0xFF1B5E20),
-    cardColor: Color(0xFF2E7D32),
+    scaffoldBackgroundColor: const Color(0xFF0F172A),
+    cardColor: const Color(0xFF1E293B),
     appBarTheme: const AppBarTheme(
-      backgroundColor: Color(0xFF004D40),
+      backgroundColor: Color(0xFF1D4ED8),
       foregroundColor: Colors.white,
     ),
-    drawerTheme: const DrawerThemeData(
-      backgroundColor: Color.fromARGB(255, 50, 107, 53),
-    ),
+    drawerTheme: const DrawerThemeData(backgroundColor: Color(0xFF1E293B)),
     floatingActionButtonTheme: const FloatingActionButtonThemeData(
-      backgroundColor: Color(0xFFA5D6A7),
+      backgroundColor: Color(0xFF3B82F6),
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(0xFFA5D6A7),
-        foregroundColor: Colors.black,
+        backgroundColor: const Color(0xFF3B82F6),
+        foregroundColor: Colors.white,
       ),
     ),
     colorScheme: ColorScheme.fromSeed(
-      seedColor: Color(0xFF2E7D32),
+      seedColor: const Color(0xFF3B82F6),
       brightness: Brightness.dark,
     ),
     useMaterial3: true,
   );
 }
+
 
 class MidnightTheme {
   ThemeData lightTheme = ThemeData(
@@ -213,56 +211,58 @@ class MidnightTheme {
   );
 }
 
-class RetroTheme {
+class CarbonMatteTheme {
   ThemeData lightTheme = ThemeData(
     brightness: Brightness.light,
-    scaffoldBackgroundColor: Color(0xFFFFF9C4),
-    cardColor: Color(0xFFFFE082),
+    scaffoldBackgroundColor: const Color(0xFFF5F5F5),
+    cardColor: const Color(0xFFE0E0E0),
     appBarTheme: const AppBarTheme(
-      backgroundColor: Color(0xFF7E57C2),
+      backgroundColor: Color(0xFF424242),
       foregroundColor: Colors.white,
     ),
-    drawerTheme: const DrawerThemeData(backgroundColor: Color(0xFFF8BBD0)),
+    drawerTheme: const DrawerThemeData(backgroundColor: Color(0xFFD7CCC8)),
     floatingActionButtonTheme: const FloatingActionButtonThemeData(
-      backgroundColor: Color(0xFFF06292),
+      backgroundColor: Color(0xFF616161),
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(0xFFF06292),
+        backgroundColor: const Color(0xFF424242),
         foregroundColor: Colors.white,
       ),
     ),
     colorScheme: ColorScheme.fromSeed(
-      seedColor: Color(0xFF7E57C2),
+      seedColor: const Color(0xFF424242),
       brightness: Brightness.light,
     ),
     useMaterial3: true,
   );
+
   ThemeData darkTheme = ThemeData(
     brightness: Brightness.dark,
-    scaffoldBackgroundColor: Color(0xFF263238),
-    cardColor: Color(0xFF37474F),
+    scaffoldBackgroundColor: const Color(0xFF121212),
+    cardColor: const Color(0xFF1E1E1E),
     appBarTheme: const AppBarTheme(
-      backgroundColor: Color(0xFF7E57C2),
+      backgroundColor: Color(0xFF212121),
       foregroundColor: Colors.white,
     ),
-    drawerTheme: const DrawerThemeData(backgroundColor: Color(0xFF37474F)),
+    drawerTheme: const DrawerThemeData(backgroundColor: Color(0xFF1E1E1E)),
     floatingActionButtonTheme: const FloatingActionButtonThemeData(
-      backgroundColor: Color(0xFFFF8A65),
+      backgroundColor: Color(0xFF757575),
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(0xFFFF8A65),
-        foregroundColor: Colors.black,
+        backgroundColor: const Color(0xFF757575),
+        foregroundColor: Colors.white,
       ),
     ),
     colorScheme: ColorScheme.fromSeed(
-      seedColor: Color(0xFFF06292),
+      seedColor: const Color(0xFF757575),
       brightness: Brightness.dark,
     ),
     useMaterial3: true,
   );
 }
+
 
 class OceanTheme {
   ThemeData lightTheme = ThemeData(

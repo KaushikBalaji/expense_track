@@ -25,41 +25,78 @@ int parseSyncFrequency(String freq) {
 Future<Map<String, dynamic>> trySyncData({bool force = false}) async {
   final prefs = await SharedPreferences.getInstance();
 
+  final syncMode = prefs.getString('syncMode') ?? 'auto'; // default
   final syncFrequency = prefs.getString('syncFrequency') ?? 'Daily';
   final intervalDays = parseSyncFrequency(syncFrequency);
 
   final lastSyncMillis = prefs.getInt('lastSyncTimestamp') ?? 0;
   final lastSyncDate = DateTime.fromMillisecondsSinceEpoch(lastSyncMillis);
+  final today = DateTime.now();
   final lastDate = DateTime(
     lastSyncDate.year,
     lastSyncDate.month,
     lastSyncDate.day,
   );
-  final now = DateTime.now();
-
-  // final daysPassed = now.difference(lastSyncDate).inDays;
-
-  final today = DateTime(now.year, now.month, now.day);
   final daysPassed = today.difference(lastDate).inDays;
 
-  debugPrint('Last sync: $lastSyncDate');
-  debugPrint('Now: $now');
-  debugPrint('Days passed: $daysPassed, Required: $intervalDays');
+  debugPrint('Sync Mode: $syncMode');
+  debugPrint('Sync Frequency: $syncFrequency');
+  debugPrint('Last Sync: $lastSyncDate');
 
+  if (syncMode == 'paused') {
+    debugPrint('Sync is paused');
+    return {
+      'lastSync': lastSyncDate,
+      'nextSyncInDays': null,
+      'message': 'Sync is paused.',
+    };
+  }
+
+  if (syncMode == 'offline') {
+    debugPrint('Offline mode enabled — no sync allowed');
+    return {
+      'lastSync': null,
+      'nextSyncInDays': null,
+      'message': 'Offline mode: local-only usage',
+    };
+  }
+
+  if (syncMode == 'manual' && !force) {
+    debugPrint('Manual sync only. Skipping auto sync.');
+    return {
+      'lastSync': lastSyncDate,
+      'nextSyncInDays': null,
+      'message': 'Manual mode: waiting for user to sync manually.',
+    };
+  }
+
+  if (syncFrequency == 'Never') {
+    debugPrint('Sync disabled by frequency setting');
+    return {
+      'lastSync': null,
+      'nextSyncInDays': null,
+      'message': 'Sync disabled (Never)',
+    };
+  }
+
+  // Auto sync logic
   if (force || daysPassed >= intervalDays) {
     await performSync();
-    await prefs.setInt('lastSyncTimestamp', now.millisecondsSinceEpoch);
+    await prefs.setInt(
+      'lastSyncTimestamp',
+      DateTime.now().millisecondsSinceEpoch,
+    );
     return {
-      'lastSync': now,
+      'lastSync': DateTime.now(),
       'nextSyncInDays': intervalDays,
-      'message': 'Sync performed just now.',
+      'message': 'Sync performed successfully.',
     };
   } else {
     final nextSyncInDays = intervalDays - daysPassed;
     return {
       'lastSync': lastSyncDate,
       'nextSyncInDays': nextSyncInDays,
-      'message': 'Sync skipped. Next sync in $nextSyncInDays day(s).',
+      'message': 'Sync skipped. $nextSyncInDays day(s) until next sync.',
     };
   }
 }

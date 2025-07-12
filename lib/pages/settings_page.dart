@@ -24,10 +24,10 @@ class _SettingsPageState extends State<SettingsPage> {
 
   final List<String> themes = [
     'Ocean',
-    'Sunset',
-    'Forest',
+    'Lapis',
+    'Quartz',
     'Midnight',
-    'Retro',
+    'Carbon',
     'Vscode',
   ];
 
@@ -66,7 +66,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    ...['Daily', 'Weekly', 'Monthly'].map(
+                    ...['Never', 'Daily', 'Weekly', 'Monthly'].map(
                       (option) => RadioListTile<String>(
                         title: Text(option),
                         value: option,
@@ -239,8 +239,10 @@ class _SettingsPageState extends State<SettingsPage> {
               ),
               _buildOption(
                 icon: Icons.sync,
-                label: 'Auto Sync Frequency',
-                onTap: _showSyncFrequencyPicker,
+                label: 'Sync Settings',
+                onTap: () {
+                  Navigator.pushNamed(context, '/sync_settings');
+                },
               ),
 
               _buildOption(

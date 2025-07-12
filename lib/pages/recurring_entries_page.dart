@@ -89,7 +89,7 @@ class _RecurringEntriesPageState extends State<RecurringEntriesPage> {
                 ),
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  // color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(

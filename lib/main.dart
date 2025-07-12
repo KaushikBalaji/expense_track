@@ -5,6 +5,7 @@ import 'package:expense_track/pages/budgets_page.dart';
 import 'package:expense_track/pages/category_page.dart';
 import 'package:expense_track/pages/monthly_transactions_page.dart';
 import 'package:expense_track/pages/recurring_entries_page.dart';
+import 'package:expense_track/pages/sync_settings_page.dart';
 import 'package:expense_track/pages/sync_status_page.dart';
 import 'package:expense_track/pages/transactions_page.dart';
 import 'package:expense_track/pages/user_page.dart';
@@ -43,8 +44,6 @@ void main() async {
   if (!Hive.isAdapterRegistered(5)) {
     Hive.registerAdapter(RecurringEntryAdapter());
   }
-
-
 
   // to save categories in hive
   if (!Hive.isAdapterRegistered(4)) {
@@ -116,16 +115,22 @@ class _MyAppState extends State<MyApp> {
 
   ThemeData getThemeByName(String name) {
     switch (name) {
-      case 'Forest':
-        return isDarkMode ? ForestTheme().darkTheme : ForestTheme().lightTheme;
-      case 'Sunset':
-        return isDarkMode ? SunsetTheme().darkTheme : SunsetTheme().lightTheme;
+      case 'Lapis':
+        return isDarkMode
+            ? LapisMinimalTheme().darkTheme
+            : LapisMinimalTheme().lightTheme;
+      case 'Quartz':
+        return isDarkMode
+            ? QuartzMistTheme().darkTheme
+            : QuartzMistTheme().lightTheme;
       case 'Midnight':
         return isDarkMode
             ? MidnightTheme().darkTheme
             : MidnightTheme().lightTheme;
-      case 'Retro':
-        return isDarkMode ? RetroTheme().darkTheme : RetroTheme().lightTheme;
+      case 'Carbon':
+        return isDarkMode
+            ? CarbonMatteTheme().darkTheme
+            : CarbonMatteTheme().lightTheme;
       case 'Ocean':
         return isDarkMode ? OceanTheme().darkTheme : OceanTheme().lightTheme;
       case 'Vscode':
@@ -164,6 +169,7 @@ class _MyAppState extends State<MyApp> {
             ),
 
         '/categories': (context) => CategoryManagementPage(),
+        '/sync_settings': (context) => SyncSettingsPage(),
       },
       debugShowCheckedModeBanner: false,
       title: 'Expense Tracker',

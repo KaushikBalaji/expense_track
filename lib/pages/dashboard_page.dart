@@ -33,6 +33,7 @@ class _DashboardPageState extends State<DashboardPage> {
   int _nextSyncInDays = 0;
   bool _hasInternet = true;
   bool _isSynced = false;
+  String _syncMode = '';
   String _syncMessage = '';
   String _syncFrequency = 'Daily';
 
@@ -54,17 +55,16 @@ class _DashboardPageState extends State<DashboardPage> {
   Future<void> _loadSyncStatus() async {
     final prefs = await SharedPreferences.getInstance();
     final internet = await SupabaseService.hasInternetConnection();
-    debugPrint("lastSyncTimestamp = ${prefs.getInt('lastSyncTimestamp')}");
-    debugPrint("syncFrequency = ${prefs.getString('syncFrequency')}");
+
+    final syncMode = prefs.getString('syncMode') ?? 'auto';
+    final freq = prefs.getString('syncFrequency') ?? 'Daily';
+    final intervalDays = parseSyncFrequency(freq);
 
     final lastMillis = prefs.getInt('lastSyncTimestamp') ?? 0;
     final lastSync =
         lastMillis > 0 ? DateTime.fromMillisecondsSinceEpoch(lastMillis) : null;
 
-    final freq = prefs.getString('syncFrequency') ?? 'Daily';
-    final intervalDays = parseSyncFrequency(freq);
     final now = DateTime.now();
-
     final today = DateTime(now.year, now.month, now.day);
     final lastDate =
         lastSync != null
@@ -74,18 +74,32 @@ class _DashboardPageState extends State<DashboardPage> {
     final daysPassed =
         lastDate != null ? today.difference(lastDate).inDays : intervalDays;
     final nextSyncIn = lastDate != null ? intervalDays - daysPassed : 0;
+
+    String syncMessage;
+    if (syncMode == 'paused') {
+      syncMessage = 'Sync is paused';
+    } else if (syncMode == 'offline') {
+      syncMessage = 'Offline mode (no cloud sync)';
+    } else if (syncMode == 'manual') {
+      syncMessage = 'Manual mode – sync only when triggered';
+    } else {
+      // auto
+      syncMessage =
+          nextSyncIn <= 0
+              ? 'Next sync happening now or soon.'
+              : '$nextSyncIn day(s) left for next sync';
+    }
+
     if (!mounted) return;
 
     setState(() {
       _hasInternet = internet;
       _lastSync = lastSync;
+      _syncMode = syncMode;
       _syncFrequency = freq;
       _nextSyncInDays = nextSyncIn;
-      _isSynced = nextSyncIn <= 0;
-      _syncMessage =
-          nextSyncIn <= 0
-              ? 'Next sync happening now or soon.'
-              : '$nextSyncIn day(s) left for next sync';
+      _syncMessage = syncMessage;
+      _isSynced = syncMode == 'auto' && nextSyncIn <= 0;
     });
   }
 
@@ -415,6 +429,16 @@ class _DashboardPageState extends State<DashboardPage> {
     }
   }
 
+  Icon getSyncStatusIcon() {
+    if (_syncMode == 'offline') {
+      return Icon(Icons.cloud_queue, color: Colors.blueGrey);
+    } else if (!_hasInternet) {
+      return Icon(Icons.cloud_off, color: Colors.orange);
+    } else {
+      return Icon(Icons.cloud_done, color: Colors.green);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -440,10 +464,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         const SizedBox(width: 8),
                         PopupMenuButton<int>(
                           offset: Offset(0, 40),
-                          icon: Icon(
-                            _hasInternet ? Icons.cloud_done : Icons.cloud_off,
-                            color: _hasInternet ? Colors.green : Colors.orange,
-                          ),
+                          icon: getSyncStatusIcon(),
                           itemBuilder:
                               (context) => [
                                 PopupMenuItem(
@@ -453,9 +474,21 @@ class _DashboardPageState extends State<DashboardPage> {
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        '📶 Internet: ${_hasInternet ? "Connected" : "No Connection"}',
+                                        _syncMode == 'offline'
+                                            ? '📴 Offline Mode Enabled'
+                                            : '📶 Internet: ${_hasInternet ? "Connected" : "No Connection"}',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          color:
+                                              _syncMode == 'offline'
+                                                  ? Colors.blueGrey
+                                                  : (_hasInternet
+                                                      ? Colors.green
+                                                      : Colors.orange),
+                                        ),
                                       ),
-                                      Text(
+                                      const SizedBox(height: 6),
+                                      const Text(
                                         '🔄 Sync Info',
                                         style: TextStyle(
                                           fontWeight: FontWeight.bold,
@@ -463,30 +496,16 @@ class _DashboardPageState extends State<DashboardPage> {
                                       ),
                                       const SizedBox(height: 8),
                                       Text(
+                                        '⚙️ Mode: ${_syncMode[0].toUpperCase()}${_syncMode.substring(1)}',
+                                      ),
+                                      Text(
                                         '📅 Last Sync: ${_lastSync != null ? _lastSync!.toLocal().toString().split('.')[0] : "Never"}',
                                       ),
-                                      Text('⏳ Next Sync: $_syncMessage'),
-                                      Text('🔁 Frequency: $_syncFrequency'),
-
-                                      const Divider(),
-                                      TextButton.icon(
-                                        onPressed:
-                                            _hasInternet
-                                                ? () async {
-                                                  if (!await ensureUserIsAuthenticated(
-                                                    context,
-                                                  ))
-                                                    return;
-                                                  await trySyncData(
-                                                    force: true,
-                                                  );
-                                                  await _loadSyncStatus();
-                                                  Navigator.pop(context);
-                                                }
-                                                : null, // disables button when false
-                                        icon: const Icon(Icons.sync),
-                                        label: const Text('Sync Now'),
-                                      ),
+                                      Text('⏳ Status: $_syncMessage'),
+                                      if (_syncMode == 'auto')
+                                        Text(
+                                          '🔁 Frequency: ${_syncFrequency == 'Never' ? 'Disabled' : _syncFrequency}',
+                                        ),
                                     ],
                                   ),
                                 ),
