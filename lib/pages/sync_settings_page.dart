@@ -198,7 +198,7 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
 
     return Card(
       elevation: 2,
-    //   color: Colors.grey.shade50,
+      //   color: Colors.grey.shade50,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -294,10 +294,30 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
                           ],
                         )
                         : ListView(
+                          padding: const EdgeInsets.all(16),
                           children: [
                             _buildSyncModeOptions(),
                             const SizedBox(height: 24),
                             if (_syncMode == 'auto') _buildAutoSyncOptions(),
+                            const SizedBox(height: 32),
+                            _buildInfoCard(),
+                            const SizedBox(height: 24),
+                            ElevatedButton(
+                              onPressed: _saveSyncSettings,
+                              child: const Text('Save Settings'),
+                            ),
+                            const SizedBox(height: 12),
+                            ElevatedButton.icon(
+                              onPressed:
+                                  _syncMode == 'paused' ||
+                                          _syncMode == 'offline'
+                                      ? null
+                                      : () => _showSuccess(
+                                        'Manual sync triggered!',
+                                      ),
+                              icon: const Icon(Icons.sync),
+                              label: const Text('Sync Now'),
+                            ),
                           ],
                         ),
               ),

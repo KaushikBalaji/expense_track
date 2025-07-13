@@ -154,6 +154,7 @@ class _MyAppState extends State<MyApp> {
       supportedLocales: const [
         Locale('en'), // ✅ Add supported locales
       ],
+      initialRoute: '/settings',
       routes: {
         '/user': (context) => const UserPage(),
         '/dashboard': (context) => const DashboardPage(),
@@ -176,10 +177,10 @@ class _MyAppState extends State<MyApp> {
       debugShowCheckedModeBanner: false,
       title: 'Expense Tracker',
       theme: currentThemeData,
-      home: SettingsPage(
-        currentTheme: selectedThemeName,
-        onThemeChanged: (newTheme) => handleThemeChange(newTheme),
-      ), // your main app screen
+      // home: SettingsPage(
+      //   currentTheme: selectedThemeName,
+      //   onThemeChanged: (newTheme) => handleThemeChange(newTheme),
+      // ), // your main app screen
     );
   }
 }

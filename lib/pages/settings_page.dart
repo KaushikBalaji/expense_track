@@ -21,6 +21,8 @@ class SettingsPage extends StatefulWidget {
 
 class _SettingsPageState extends State<SettingsPage> {
   late String _selectedTheme;
+  DateTime? _lastBackPressed;
+
 
   final List<String> themes = [
     'Ocean',
@@ -177,10 +179,11 @@ class _SettingsPageState extends State<SettingsPage> {
 
   @override
   Widget build(BuildContext context) {
+    
     final isWide = MediaQuery.of(context).size.width > 600;
 
     return Scaffold(
-      appBar: CustomAppBar(title: 'Settings'),
+      appBar: CustomAppBar(title: 'Home'),
       drawer: CustomSidebar(),
       body: Center(
         child: ConstrainedBox(
@@ -207,10 +210,10 @@ class _SettingsPageState extends State<SettingsPage> {
                 label: 'Transactions',
                 onTap: () {
                   if (Platform.isWindows) {
-                    Navigator.of(context).pop();
+                    // Navigator.of(context).pop();
                     Navigator.pushNamed(context, '/win_transactions');
                   } else {
-                    Navigator.of(context).pop();
+                    // Navigator.of(context).pop();
                     Navigator.pushNamed(context, '/transactions');
                   }
                 },

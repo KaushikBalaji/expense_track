@@ -84,10 +84,7 @@ class _AuthDialogContentState extends State<AuthDialogContent> {
           ),
         ),
       );
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const DashboardPage()),
-      );
+      Navigator.pushNamed(context, '/dashboard');
     } catch (e) {
       final message = e.toString().replaceFirst('Exception: ', '');
 
