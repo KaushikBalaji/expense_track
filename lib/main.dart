@@ -10,6 +10,7 @@ import 'package:expense_track/pages/sync_status_page.dart';
 import 'package:expense_track/pages/transactions_page.dart';
 import 'package:expense_track/pages/user_page.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'custom_theme.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'models/entry.dart';
@@ -20,6 +21,7 @@ import 'package:month_year_picker/month_year_picker.dart';
 import 'pages/settings_page.dart';
 import 'utils/sync_services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'pages/onboarding_setup_page.dart';
 
 void main() async {
   await dotenv.load(fileName: ".env");
@@ -54,11 +56,14 @@ void main() async {
   // await Hive.deleteBoxFromDisk('categories');
 
   debugPrint('Opening expensesBox...');
+  final prefs = await SharedPreferences.getInstance();
+  final hasCompletedSetup = prefs.getBool('hasCompletedSetup') ?? false;
+
   await initialize();
   await generateDueRecurringEntries();
   await trySyncData();
 
-  runApp(const MyApp());
+  runApp(MyApp(startOnSetup: !hasCompletedSetup));
 }
 
 Future<void> initialize() async {
@@ -76,7 +81,8 @@ Future<void> initialize() async {
 }
 
 class MyApp extends StatefulWidget {
-  const MyApp({super.key});
+  final bool startOnSetup;
+  const MyApp({super.key, required this.startOnSetup});
 
   @override
   State<MyApp> createState() => _MyAppState();
@@ -154,8 +160,9 @@ class _MyAppState extends State<MyApp> {
       supportedLocales: const [
         Locale('en'), // ✅ Add supported locales
       ],
-      initialRoute: '/settings',
+      initialRoute: widget.startOnSetup ? '/setup' : '/settings',
       routes: {
+        '/setup': (context) => const SetupPage(),
         '/user': (context) => const UserPage(),
         '/dashboard': (context) => const DashboardPage(),
         '/transactions':
@@ -177,10 +184,6 @@ class _MyAppState extends State<MyApp> {
       debugShowCheckedModeBanner: false,
       title: 'Expense Tracker',
       theme: currentThemeData,
-      // home: SettingsPage(
-      //   currentTheme: selectedThemeName,
-      //   onThemeChanged: (newTheme) => handleThemeChange(newTheme),
-      // ), // your main app screen
     );
   }
 }

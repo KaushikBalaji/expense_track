@@ -270,6 +270,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.0.1"
+  double_back_to_exit:
+    dependency: "direct main"
+    description:
+      name: double_back_to_exit
+      sha256: d1edd8b37b2df022661c3bfc00db3f05f1e70833789461055c86b8b1c2c65766
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.2.1"
   dropdown_button2:
     dependency: "direct main"
     description:

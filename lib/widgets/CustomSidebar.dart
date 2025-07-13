@@ -275,7 +275,8 @@ class SidebarItem extends StatelessWidget {
         ),
       ),
       onTap: () {
-        Navigator.of(context).pop();
+        if(! context.mounted)
+          Navigator.of(context).pop();
         onTap();
       },
     );

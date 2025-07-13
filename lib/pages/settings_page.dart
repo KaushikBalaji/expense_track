@@ -3,7 +3,9 @@ import 'dart:io';
 import 'package:expense_track/widgets/CustomAppbar.dart';
 import 'package:expense_track/widgets/CustomSidebar.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:double_back_to_exit/double_back_to_exit.dart';
 
 class SettingsPage extends StatefulWidget {
   final Function(String) onThemeChanged; // callback for theme change
@@ -21,8 +23,6 @@ class SettingsPage extends StatefulWidget {
 
 class _SettingsPageState extends State<SettingsPage> {
   late String _selectedTheme;
-  DateTime? _lastBackPressed;
-
 
   final List<String> themes = [
     'Ocean',
@@ -32,7 +32,6 @@ class _SettingsPageState extends State<SettingsPage> {
     'Carbon',
     'Vscode',
   ];
-
 
   @override
   void initState() {
@@ -115,7 +114,9 @@ class _SettingsPageState extends State<SettingsPage> {
                     ElevatedButton(
                       onPressed: () {
                         prefs.setString('syncFrequency', selected);
-                        debugPrint('SyncFrequency set as ${prefs.getString('syncFrequency')}');
+                        debugPrint(
+                          'SyncFrequency set as ${prefs.getString('syncFrequency')}',
+                        );
                         Navigator.pop(context);
                       },
                       child: const Text('Save'),
@@ -177,83 +178,90 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
+  bool canPopScope = false;
+
+
   @override
   Widget build(BuildContext context) {
-    
     final isWide = MediaQuery.of(context).size.width > 600;
+    return DoubleBackToExit(
+      snackBarMessage: "Press back again to exit",
+      doubleBackDuration: Duration(seconds: 2),
+      child: Scaffold(
+        appBar: CustomAppBar(title: 'Home'),
+        drawer: CustomSidebar(),
+        body: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: isWide ? 500 : double.infinity,
+            ),
+            child: ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                _buildOption(
+                  icon: Icons.person_outline,
+                  label: 'User Profile',
+                  onTap: () {
+                    Navigator.pushNamed(context, '/user');
+                  },
+                ),
+                _buildOption(
+                  icon: Icons.account_balance_wallet_outlined,
+                  label: 'Budgets',
+                  onTap: () {
+                    Navigator.pushNamed(context, '/budgets');
+                  },
+                ),
+                _buildOption(
+                  icon: Icons.list_alt_outlined,
+                  label: 'Transactions',
+                  onTap: () {
+                    if (Platform.isWindows) {
+                      // Navigator.of(context).pop();
+                      Navigator.pushNamed(context, '/win_transactions');
+                    } else {
+                      // Navigator.of(context).pop();
+                      Navigator.pushNamed(context, '/transactions');
+                    }
+                  },
+                ),
+                _buildOption(
+                  icon: Icons.account_balance_wallet_outlined,
+                  label: 'Analytics Dashboard',
+                  onTap: () {
+                    Navigator.pushNamed(context, '/dashboard');
+                  },
+                ),
+                const Divider(),
+                _buildOption(
+                  icon: Icons.person_outline,
+                  label: 'Category Page',
+                  onTap: () {
+                    Navigator.pushNamed(context, '/categories');
+                  },
+                ),
+                _buildOption(
+                  icon: Icons.refresh_outlined,
+                  label: 'Recurring Transactions',
+                  onTap: () {
+                    Navigator.pushNamed(context, '/recurring');
+                  },
+                ),
+                _buildOption(
+                  icon: Icons.sync,
+                  label: 'Sync Settings',
+                  onTap: () {
+                    Navigator.pushNamed(context, '/sync_settings');
+                  },
+                ),
 
-    return Scaffold(
-      appBar: CustomAppBar(title: 'Home'),
-      drawer: CustomSidebar(),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: isWide ? 500 : double.infinity),
-          child: ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              _buildOption(
-                icon: Icons.person_outline,
-                label: 'User Profile',
-                onTap: () {
-                  Navigator.pushNamed(context, '/user');
-                },
-              ),
-              _buildOption(
-                icon: Icons.account_balance_wallet_outlined,
-                label: 'Budgets',
-                onTap: () {
-                  Navigator.pushNamed(context, '/budgets');
-                },
-              ),
-              _buildOption(
-                icon: Icons.list_alt_outlined,
-                label: 'Transactions',
-                onTap: () {
-                  if (Platform.isWindows) {
-                    // Navigator.of(context).pop();
-                    Navigator.pushNamed(context, '/win_transactions');
-                  } else {
-                    // Navigator.of(context).pop();
-                    Navigator.pushNamed(context, '/transactions');
-                  }
-                },
-              ),
-              _buildOption(
-                icon: Icons.account_balance_wallet_outlined,
-                label: 'Analytics Dashboard',
-                onTap: () {
-                  Navigator.pushNamed(context, '/dashboard');
-                },
-              ),
-              const Divider(),
-              _buildOption(
-                icon: Icons.person_outline,
-                label: 'Category Page',
-                onTap: () {
-                  Navigator.pushNamed(context, '/categories');
-                },
-              ),
-              _buildOption(
-                icon: Icons.refresh_outlined,
-                label: 'Recurring Transactions',
-                onTap: () {
-                  Navigator.pushNamed(context, '/recurring');
-                },
-              ),
-              _buildOption(
-                icon: Icons.sync,
-                label: 'Sync Settings',
-                onTap: () {
-                  Navigator.pushNamed(context, '/sync_settings');
-                },
-              ),
-
-              _buildOption(
-                icon: Icons.color_lens_outlined,
-                label: 'Change Theme',
-                onTap: _showThemePicker,
-              ),
-            ],
+                _buildOption(
+                  icon: Icons.color_lens_outlined,
+                  label: 'Change Theme',
+                  onTap: _showThemePicker,
+                ),
+              ],
+            ),
           ),
         ),
       ),
