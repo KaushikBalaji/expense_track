@@ -29,41 +29,36 @@ void main() async {
 
   await Supabase.initialize(
     url: dotenv.env['SUPABASE_URL']!,
-    anonKey: dotenv.env['SUPABASE_ANON_KEY']!,        
+    anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
   );
 
   debugPrint('Initializing Hive...');
   await Hive.initFlutter();
-  //await Hive.deleteBoxFromDisk('entriesBox');
 
-  debugPrint('Registering Entry Adapter...');
-  Hive.registerAdapter(EntryAdapter()); // Register the Entry adapter
-
-  if (!Hive.isAdapterRegistered(3)) {
-    Hive.registerAdapter(BudgetAdapter());
-  }
-
-  // For Recurring entry hive
-  if (!Hive.isAdapterRegistered(5)) {
+  Hive.registerAdapter(EntryAdapter());
+  if (!Hive.isAdapterRegistered(3)) Hive.registerAdapter(BudgetAdapter());
+  if (!Hive.isAdapterRegistered(4)) Hive.registerAdapter(CategoryItemAdapter());
+  if (!Hive.isAdapterRegistered(5))
     Hive.registerAdapter(RecurringEntryAdapter());
-  }
 
-  // to save categories in hive
-  if (!Hive.isAdapterRegistered(4)) {
-    Hive.registerAdapter(CategoryItemAdapter());
-  }
-
-  // await Hive.deleteBoxFromDisk('categories');
-
-  debugPrint('Opening expensesBox...');
   final prefs = await SharedPreferences.getInstance();
+  prefs.setBool('hasCompletedSetup', false);
+
   final hasCompletedSetup = prefs.getBool('hasCompletedSetup') ?? false;
+  final themeName = prefs.getString('themeName') ?? 'Vscode';
+  final isDarkMode = prefs.getBool('isDarkMode') ?? false;
 
   await initialize();
   await generateDueRecurringEntries();
   await trySyncData();
 
-  runApp(MyApp(startOnSetup: !hasCompletedSetup));
+  runApp(
+    MyApp(
+      startOnSetup: !hasCompletedSetup,
+      initialTheme: themeName,
+      initialDarkMode: isDarkMode,
+    ),
+  );
 }
 
 Future<void> initialize() async {
@@ -73,8 +68,7 @@ Future<void> initialize() async {
     await Hive.openBox<Entry>('entriesBox');
     await Hive.openBox<CategoryItem>('categories');
     await Hive.openBox<RecurringEntry>('recurring_entries_box');
-
-    debugPrint('Hivebox open');
+    debugPrint('Hive boxes opened');
   } catch (e) {
     debugPrint('Error opening Hive box: $e');
   }
@@ -82,7 +76,14 @@ Future<void> initialize() async {
 
 class MyApp extends StatefulWidget {
   final bool startOnSetup;
-  const MyApp({super.key, required this.startOnSetup});
+  final String initialTheme;
+  final bool initialDarkMode;
+  const MyApp({
+    super.key,
+    required this.startOnSetup,
+    required this.initialTheme,
+    required this.initialDarkMode,
+  });
 
   @override
   State<MyApp> createState() => _MyAppState();
@@ -92,32 +93,44 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  // bool isDarkMode = false;
-  late String selectedThemeName;
-  late ThemeData currentThemeData;
-  bool isDarkMode = false; // You can make this persistent if needed
-
-  void toggleTheme() {
-    setState(() {
-      isDarkMode = !isDarkMode;
-      currentThemeData = getThemeByName(selectedThemeName);
-    });
-  }
+  late String selectedThemeName = 'Vscode';
+  late ThemeData currentThemeData = VscodeTheme().lightTheme;
+  bool isDarkMode = false;
+  //   bool _isInitialized = false;
 
   @override
   void initState() {
     super.initState();
-    selectedThemeName = 'Vscode'; // default theme
+    // SharedPreferences.getInstance().then((prefs) {
+    //     final theme = prefs.getString('themeName') ?? 'Vscode';
+    //     final DarkMode = prefs.getBool('isDarkMode') ?? false;
+    //   setState(() {
+    //     selectedThemeName = theme;
+    //     isDarkMode = DarkMode;
+    //     currentThemeData = getThemeByName(selectedThemeName);
+    //     // _isInitialized = true;
+    //   });
+    // });
+    selectedThemeName = widget.initialTheme;
+    isDarkMode = widget.initialDarkMode;
     currentThemeData = getThemeByName(selectedThemeName);
   }
 
-  void handleThemeChange(String newTheme) {
+  void handleThemeChange(String newTheme) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('themeName', newTheme);
     setState(() {
       selectedThemeName = newTheme;
       currentThemeData = getThemeByName(newTheme);
+    });
+  }
 
-      // Optional: switch dark/light mode based on theme
-      isDarkMode = currentThemeData.brightness == Brightness.dark;
+  void toggleThemeMode(bool darkModeEnabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('isDarkMode', darkModeEnabled);
+    setState(() {
+      isDarkMode = darkModeEnabled;
+      currentThemeData = getThemeByName(selectedThemeName);
     });
   }
 
@@ -155,11 +168,9 @@ class _MyAppState extends State<MyApp> {
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
-        MonthYearPickerLocalizations.delegate, // ✅ Required
+        MonthYearPickerLocalizations.delegate,
       ],
-      supportedLocales: const [
-        Locale('en'), // ✅ Add supported locales
-      ],
+      supportedLocales: const [Locale('en')],
       initialRoute: widget.startOnSetup ? '/setup' : '/settings',
       routes: {
         '/setup': (context) => const SetupPage(),
@@ -175,9 +186,8 @@ class _MyAppState extends State<MyApp> {
         '/settings':
             (_) => SettingsPage(
               currentTheme: selectedThemeName,
-              onThemeChanged: (newTheme) => handleThemeChange(newTheme),
+              onThemeChanged: handleThemeChange,
             ),
-
         '/categories': (context) => CategoryManagementPage(),
         '/sync_settings': (context) => SyncSettingsPage(),
       },

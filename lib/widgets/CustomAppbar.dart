@@ -49,7 +49,11 @@ class _CustomAppBarState extends State<CustomAppBar> {
         IconButton(
           icon: const Icon(Icons.brightness_6),
           tooltip: 'Toggle Theme',
-          onPressed: () => MyApp.of(context)?.toggleTheme(),
+          onPressed: () {
+            final isDark = MyApp.of(context)?.isDarkMode ?? false;
+            MyApp.of(context)?.toggleThemeMode(!isDark);
+            
+          } 
         ),
         ...?widget.actions,
         SizedBox(width: 10,)
